@@ -1,0 +1,235 @@
+{% extends "base/base.html" %}
+{% block title %}Empréstimo — {{ emp.cliente.nome }}{% endblock %}
+{% block page_title %}Empréstimo de {{ emp.cliente.nome }}{% endblock %}
+{% block page_subtitle %}
+  <p class="text-xs text-slate-500 mt-0.5">
+    {{ emp.get_tipo_display }}
+    {% if emp.subtipo_parcelado %}· {{ emp.get_subtipo_parcelado_display }}{% endif %}
+    · Desde {{ emp.data_inicio|date:"d/m/Y" }}
+  </p>
+{% endblock %}
+{% block page_actions %}
+  <a href="{% url 'web_customers:detail' pk=emp.cliente.id %}"
+     class="text-sm text-slate-500 hover:text-slate-700 font-medium">← Cliente</a>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+
+  {# Card principal #}
+  <div class="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+    <div class="flex items-center justify-between">
+      <span class="text-xs px-2.5 py-1 rounded-full font-medium
+                  {% if emp.status == 'ativo' %}bg-green-100 text-green-700
+                  {% elif emp.status == 'inadimplente' %}bg-red-100 text-red-700
+                  {% elif emp.status == 'quitado' %}bg-slate-100 text-slate-600
+                  {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+        {{ emp.get_status_display }}
+      </span>
+      <a href="{% url 'web_customers:detail' pk=emp.cliente.id %}"
+        class="text-sm text-blue-600 hover:underline font-medium">{{ emp.cliente.nome }}</a>
+    </div>
+
+    <dl class="space-y-2.5 text-sm">
+      <div class="flex justify-between">
+        <dt class="text-slate-500">Capital Inicial</dt>
+        <dd class="font-mono font-medium text-slate-900">R$ {{ emp.capital_inicial|floatformat:2 }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-slate-500">Saldo Devedor</dt>
+        <dd class="font-mono font-bold {% if emp.status == 'inadimplente' %}text-red-600{% else %}text-slate-900{% endif %}">
+          R$ {{ emp.capital_atual|floatformat:2 }}
+        </dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-slate-500">Taxa</dt>
+        <dd class="text-slate-700">{{ emp.taxa_percentual_display }}</dd>
+      </div>
+      {% if juros_mes %}
+      <div class="flex justify-between bg-orange-50 rounded px-2 py-1">
+        <dt class="text-orange-600">Juros do Mês</dt>
+        <dd class="font-mono text-orange-700 font-semibold">R$ {{ juros_mes|floatformat:2 }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-slate-500 font-medium">Total para Quitar</dt>
+        <dd class="font-mono font-bold text-slate-900">R$ {{ total_quitacao|floatformat:2 }}</dd>
+      </div>
+      {% endif %}
+      {% if emp.data_vencimento %}
+      <div class="flex justify-between">
+        <dt class="text-slate-500">Vencimento</dt>
+        <dd class="text-slate-700">{{ emp.data_vencimento|date:"d/m/Y" }}</dd>
+      </div>
+      {% endif %}
+      <div class="flex justify-between border-t border-slate-100 pt-2">
+        <dt class="text-slate-500">Total Pago</dt>
+        <dd class="font-mono text-green-600 font-semibold">R$ {{ emp.total_pago|floatformat:2 }}</dd>
+      </div>
+    </dl>
+
+    {# Pagamento COMUM — 3 opções explícitas #}
+    {% if emp.tipo == 'comum' and emp.status in 'ativo,inadimplente' %}
+    <div class="pt-4 border-t border-slate-100">
+      <p class="text-xs font-semibold text-slate-600 mb-3">Registrar Pagamento</p>
+
+      {# Atalhos rápidos #}
+      <div class="grid grid-cols-1 gap-2 mb-3">
+        <a href="#"
+          onclick="preencherPagamento('{{ juros_mes|floatformat:2 }}', 'Apenas juros'); return false;"
+          class="flex items-center justify-between px-3 py-2 rounded-lg border border-orange-200 bg-orange-50 hover:bg-orange-100 transition-colors cursor-pointer">
+          <span class="text-xs font-medium text-orange-700">Só os juros (capital permanece)</span>
+          <span class="text-xs font-bold text-orange-800 font-mono">R$ {{ juros_mes|floatformat:2 }}</span>
+        </a>
+        <a href="#"
+          onclick="preencherPagamento('{{ total_quitacao|floatformat:2 }}', 'Quitação total'); return false;"
+          class="flex items-center justify-between px-3 py-2 rounded-lg border border-green-200 bg-green-50 hover:bg-green-100 transition-colors cursor-pointer">
+          <span class="text-xs font-medium text-green-700">Quitação total (capital + juros)</span>
+          <span class="text-xs font-bold text-green-800 font-mono">R$ {{ total_quitacao|floatformat:2 }}</span>
+        </a>
+      </div>
+      <p class="text-xs text-slate-400 mb-2">Ou informe valor personalizado (pagamento parcial do capital):</p>
+
+      <form method="post" action="{% url 'web_loans:pagar' pk=emp.id %}">
+        {% csrf_token %}
+        <div class="space-y-2.5">
+          {% for field in pagamento_form %}
+          <div>
+            <label class="block text-xs text-slate-500 mb-1">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors|first }}</p>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        <button type="submit"
+                class="mt-3 w-full py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
+          Confirmar Pagamento
+        </button>
+      </form>
+    </div>
+    {% endif %}
+
+    {# Garantias do empréstimo #}
+    <div class="pt-4 border-t border-slate-100">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-xs font-semibold text-slate-600">Garantias (Penhoras)</p>
+        {% if emp.status != 'quitado' %}
+        <a href="{% url 'web_collaterals:create' emprestimo_pk=emp.id %}"
+          class="text-xs text-amber-600 hover:text-amber-800 font-medium">+ Adicionar</a>
+        {% endif %}
+      </div>
+      {% for g in emp.garantias.all %}
+      <div class="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
+        <div>
+          <p class="text-xs font-medium text-slate-700">{{ g.get_tipo_display }} — {{ g.descricao|truncatechars:30 }}</p>
+          <p class="text-xs text-slate-400">
+            Valor: R$ {{ g.valor_estimado|floatformat:2 }}
+            · Recuperação: {{ g.percentual_recuperacao|floatformat:0|floatformat:0 }}%
+          </p>
+        </div>
+        <form method="post" action="{% url 'web_collaterals:delete' pk=g.id %}">
+          {% csrf_token %}
+          <button type="submit" class="text-xs text-red-400 hover:text-red-600">Remover</button>
+        </form>
+      </div>
+      {% empty %}
+      <p class="text-xs text-slate-400">Nenhuma garantia registrada.</p>
+      {% endfor %}
+      {% if emp.total_garantias > 0 %}
+      <div class="mt-2 flex justify-between text-xs font-medium text-slate-600 bg-amber-50 rounded px-2 py-1.5 border border-amber-100">
+        <span>Total garantido</span>
+        <span class="font-bold text-amber-700">R$ {{ emp.total_garantias|floatformat:2 }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  {# Parcelas e Histórico #}
+  <div class="xl:col-span-2 space-y-4">
+
+    {# Tabela de parcelas #}
+    {% if emp.tipo == 'parcelado' and emp.parcelas.exists %}
+    <div class="bg-white rounded-xl border border-slate-200">
+      <div class="px-5 py-4 border-b border-slate-100">
+        <h3 class="text-sm font-semibold text-slate-700">Tabela de Parcelas</h3>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs">
+          <thead class="bg-slate-50 border-b border-slate-100">
+            <tr>
+              <th class="px-4 py-2.5 text-left text-slate-500 font-semibold">#</th>
+              <th class="px-4 py-2.5 text-left text-slate-500 font-semibold">Vencimento</th>
+              <th class="px-4 py-2.5 text-right text-slate-500 font-semibold">Parcela</th>
+              <th class="px-4 py-2.5 text-right text-slate-500 font-semibold">Juros</th>
+              <th class="px-4 py-2.5 text-right text-slate-500 font-semibold">Capital</th>
+              <th class="px-4 py-2.5 text-right text-slate-500 font-semibold">Saldo</th>
+              <th class="px-4 py-2.5 text-left text-slate-500 font-semibold">Situação</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-50">
+            {% for parcela in emp.parcelas.all %}
+            <tr class="hover:bg-slate-50 {% if parcela.esta_atrasada %}bg-red-50{% endif %}">
+              <td class="px-4 py-2.5 text-slate-500">{{ parcela.numero }}</td>
+              <td class="px-4 py-2.5 text-slate-600">{{ parcela.data_vencimento|date:"d/m/Y" }}</td>
+              <td class="px-4 py-2.5 text-right font-medium text-slate-900">R$ {{ parcela.valor_parcela|floatformat:2 }}</td>
+              <td class="px-4 py-2.5 text-right text-orange-600">R$ {{ parcela.valor_juros|floatformat:2 }}</td>
+              <td class="px-4 py-2.5 text-right text-blue-600">R$ {{ parcela.valor_principal|floatformat:2 }}</td>
+              <td class="px-4 py-2.5 text-right text-slate-500">R$ {{ parcela.saldo_devedor_depois|floatformat:2 }}</td>
+              <td class="px-4 py-2.5">
+                <span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium
+                             {% if parcela.status == 'pago' %}bg-green-100 text-green-700
+                             {% elif parcela.status == 'atrasado' %}bg-red-100 text-red-700
+                             {% elif parcela.status == 'parcialmente_pago' %}bg-yellow-100 text-yellow-700
+                             {% else %}bg-slate-100 text-slate-600{% endif %}">
+                  {{ parcela.get_status_display }}
+                </span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    {# Histórico de pagamentos #}
+    {% if emp.pagamentos.exists %}
+    <div class="bg-white rounded-xl border border-slate-200">
+      <div class="px-5 py-4 border-b border-slate-100">
+        <h3 class="text-sm font-semibold text-slate-700">Histórico de Pagamentos</h3>
+      </div>
+      <div class="divide-y divide-slate-50">
+        {% for pag in emp.pagamentos.all %}
+        <div class="flex items-center justify-between px-5 py-3">
+          <div>
+            <p class="text-sm font-medium text-green-700">R$ {{ pag.valor|floatformat:2 }}</p>
+            <p class="text-xs text-slate-500 mt-0.5">
+              {{ pag.get_tipo_display }} · {{ pag.data_pagamento|date:"d/m/Y" }}
+            </p>
+          </div>
+          <div class="text-right text-xs text-slate-400">
+            <p>Juros: R$ {{ pag.valor_juros_pagos|floatformat:2 }}</p>
+            <p>Capital: R$ {{ pag.valor_capital_pago|floatformat:2 }}</p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function preencherPagamento(valor, descricao) {
+  const input = document.querySelector('[name="valor"]');
+  if (input) {
+    input.value = valor;
+    input.focus();
+  }
+  const obs = document.querySelector('[name="observacoes"]');
+  if (obs) obs.value = descricao;
+}
+</script>
+{% endblock %}

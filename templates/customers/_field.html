@@ -1,0 +1,13 @@
+<div {% if span %}class="sm:col-span-2"{% endif %}>
+  <label class="block text-xs font-medium text-slate-600 mb-1.5">
+    {{ field.label }}
+    {% if field.field.required %}<span class="text-red-400 ml-0.5">*</span>{% endif %}
+  </label>
+  {{ field }}
+  {% if field.errors %}
+  <p class="text-xs text-red-500 mt-1">{{ field.errors|first }}</p>
+  {% endif %}
+  {% if field.help_text %}
+  <p class="text-xs text-slate-400 mt-1">{{ field.help_text }}</p>
+  {% endif %}
+</div>

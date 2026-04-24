@@ -1,0 +1,56 @@
+{% extends "base/base.html" %}
+{% block title %}Configurar Capital{% endblock %}
+{% block page_title %}Capital Total do Operador{% endblock %}
+{% block page_subtitle %}
+  <p class="text-xs text-slate-500 mt-0.5">Define o capital base para cálculo do caixa disponível</p>
+{% endblock %}
+{% block page_actions %}
+  <a href="{% url 'dashboard:dashboard-index' %}" class="text-sm text-slate-500 hover:text-slate-700 font-medium">← Dashboard</a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-md">
+  <div class="bg-white rounded-xl border border-slate-200 p-6">
+
+    <div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-5 text-sm text-blue-700">
+      <strong>Como funciona:</strong> Informe o capital total que você possui para empréstimos.
+      O sistema calcula automaticamente: <em>Capital em Caixa = Capital Total − Capital Emprestado</em>.
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="space-y-4">
+
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1.5">
+            Capital Total (R$) <span class="text-red-400">*</span>
+          </label>
+          <input type="number" name="total_capital" step="0.01" min="0"
+                 value="{{ config.total_capital }}"
+                 class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 placeholder="Ex: 50000.00" required>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1.5">Observações</label>
+          <textarea name="observacoes" rows="3"
+                    class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    placeholder="Ex: Capital atualizado após aporte de...">{{ config.observacoes|default:'' }}</textarea>
+        </div>
+
+      </div>
+
+      <div class="flex gap-3 mt-5">
+        <a href="{% url 'dashboard:dashboard-index' %}"
+           class="flex-1 text-center px-4 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50">
+          Cancelar
+        </a>
+        <button type="submit"
+                class="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+          Salvar Capital
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

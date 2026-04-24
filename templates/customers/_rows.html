@@ -1,0 +1,154 @@
+{# Mobile #}
+<div class="lg:hidden divide-y divide-slate-100">
+  {% for cliente in page %}
+  <a href="{% url 'web_customers:detail' pk=cliente.id %}"
+     class="flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors">
+    <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0
+                {% if cliente.classificacao == 'verde' %}bg-emerald-100 text-emerald-700
+                {% elif cliente.classificacao == 'amarelo' %}bg-amber-100 text-amber-700
+                {% else %}bg-red-100 text-red-700{% endif %}">
+      {{ cliente.nome|first|upper }}
+    </div>
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-semibold text-slate-900 truncate">{{ cliente.nome }}</p>
+      <p class="text-xs text-slate-400 mt-0.5 truncate">{{ cliente.cpf }} · {{ cliente.telefone_principal }}</p>
+    </div>
+    <div class="flex-shrink-0 flex flex-col items-end gap-1">
+      <span class="badge {% if cliente.classificacao == 'verde' %}badge-green{% elif cliente.classificacao == 'amarelo' %}badge-yellow{% else %}badge-red{% endif %}">
+        {% if cliente.classificacao == 'verde' %}Bom{% elif cliente.classificacao == 'amarelo' %}Regular{% else %}Ruim{% endif %}
+      </span>
+      <svg class="w-4 h-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+      </svg>
+    </div>
+  </a>
+  {% empty %}
+  <div class="empty-state">
+    <div class="empty-state-icon">
+      <svg class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+      </svg>
+    </div>
+    <p class="text-sm font-medium text-slate-600">Nenhum cliente encontrado</p>
+    <p class="text-xs text-slate-400 mt-1">Tente outro termo de busca ou cadastre um novo cliente</p>
+  </div>
+  {% endfor %}
+</div>
+
+{# Desktop #}
+<div class="hidden lg:block">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Cliente</th>
+        <th>CPF</th>
+        <th>Telefone</th>
+        <th>Localidade</th>
+        <th>Classificação</th>
+        <th>Saldo devedor</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for cliente in page %}
+      <tr>
+        <td>
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0
+                        {% if cliente.classificacao == 'verde' %}bg-emerald-100 text-emerald-700
+                        {% elif cliente.classificacao == 'amarelo' %}bg-amber-100 text-amber-700
+                        {% else %}bg-red-100 text-red-700{% endif %}">
+              {{ cliente.nome|first|upper }}
+            </div>
+            <div class="min-w-0">
+              <a href="{% url 'web_customers:detail' pk=cliente.id %}"
+                 class="font-semibold text-slate-900 hover:text-blue-600 transition-colors truncate block">
+                {{ cliente.nome }}
+              </a>
+              {% if cliente.profissao %}
+              <p class="text-xs text-slate-400 truncate">{{ cliente.profissao }}</p>
+              {% endif %}
+            </div>
+          </div>
+        </td>
+        <td><span class="font-mono text-xs text-slate-500">{{ cliente.cpf }}</span></td>
+        <td class="text-slate-600">{{ cliente.telefone_principal }}</td>
+        <td class="text-slate-500">
+          {% if cliente.cidade %}{{ cliente.cidade }}/{{ cliente.estado }}{% else %}<span class="text-slate-300">—</span>{% endif %}
+        </td>
+        <td>
+          <span class="badge {% if cliente.classificacao == 'verde' %}badge-green{% elif cliente.classificacao == 'amarelo' %}badge-yellow{% else %}badge-red{% endif %}">
+            {% if cliente.classificacao == 'verde' %}● Bom Pagador{% elif cliente.classificacao == 'amarelo' %}● Regular{% else %}● Mau Pagador{% endif %}
+          </span>
+        </td>
+        <td>
+          {% if cliente.saldo_devedor_total %}
+          <span class="font-semibold text-slate-900">R$ {{ cliente.saldo_devedor_total|floatformat:2 }}</span>
+          {% else %}
+          <span class="text-slate-300">—</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="flex items-center gap-1 justify-end">
+            <a href="{% url 'web_customers:update' pk=cliente.id %}"
+               class="btn btn-secondary btn-sm btn-icon" title="Editar">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+              </svg>
+            </a>
+            <a href="{% url 'web_customers:detail' pk=cliente.id %}"
+               class="btn btn-primary btn-sm">Ver →</a>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7">
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <svg class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+            </div>
+            <p class="text-sm font-medium text-slate-600">Nenhum cliente encontrado</p>
+            <p class="text-xs text-slate-400 mt-1">Tente outro termo de busca ou <a href="{% url 'web_customers:create' %}" class="text-blue-600 hover:underline">cadastre um novo</a></p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if page.has_other_pages %}
+  <div class="flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50/60">
+    <p class="text-xs text-slate-500">{{ page.start_index }}–{{ page.end_index }} de {{ page.paginator.count }}</p>
+    <div class="flex gap-1">
+      {% if page.has_previous %}
+      <a href="?page={{ page.previous_page_number }}&q={{ q }}&classificacao={{ classificacao }}"
+         class="btn btn-secondary btn-sm">← Anterior</a>
+      {% endif %}
+      {% if page.has_next %}
+      <a href="?page={{ page.next_page_number }}&q={{ q }}&classificacao={{ classificacao }}"
+         class="btn btn-secondary btn-sm">Próxima →</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{# Mobile pagination #}
+{% if page.has_other_pages %}
+<div class="lg:hidden flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50/60">
+  <p class="text-xs text-slate-500">Pág. {{ page.number }}/{{ page.paginator.num_pages }}</p>
+  <div class="flex gap-1.5">
+    {% if page.has_previous %}
+    <a href="?page={{ page.previous_page_number }}&q={{ q }}&classificacao={{ classificacao }}"
+       class="btn btn-secondary btn-sm">←</a>
+    {% endif %}
+    {% if page.has_next %}
+    <a href="?page={{ page.next_page_number }}&q={{ q }}&classificacao={{ classificacao }}"
+       class="btn btn-secondary btn-sm">→</a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}

@@ -1,0 +1,24 @@
+{% if clientes %}
+<div class="border border-slate-200 rounded-lg bg-white shadow-sm overflow-hidden mt-1 z-10 relative">
+  {% for c in clientes %}
+  <button type="button"
+          onclick="selecionarIndicador('{{ c.id }}', '{{ c.nome }}')"
+          class="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50 transition-colors text-left border-b border-slate-50 last:border-0">
+    <div class="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-xs font-bold flex-shrink-0">
+      {{ c.nome|first|upper }}
+    </div>
+    <div class="min-w-0">
+      <p class="text-sm font-medium text-slate-800 truncate">{{ c.nome }}</p>
+      <p class="text-xs text-slate-400">{{ c.cpf }}</p>
+    </div>
+  </button>
+  {% endfor %}
+</div>
+<script>
+function selecionarIndicador(id, nome) {
+  document.querySelector('[name="indicador"]').value = id;
+  document.getElementById('indicador-search').value = nome;
+  document.getElementById('indicador-results').innerHTML = '';
+}
+</script>
+{% endif %}

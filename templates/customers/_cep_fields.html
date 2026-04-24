@@ -1,0 +1,45 @@
+<div id="campos-endereco">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+    <div class="lg:col-span-3">
+      <label class="block text-xs font-medium text-slate-600 mb-1.5">Logradouro</label>
+      <input type="text" name="logradouro"
+             value="{{ dados.logradouro|default:'' }}"
+             class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-slate-600 mb-1.5">Número</label>
+      <input type="text" name="numero"
+             class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-slate-600 mb-1.5">Complemento</label>
+      <input type="text" name="complemento"
+             class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-slate-600 mb-1.5">Bairro</label>
+      <input type="text" name="bairro"
+             value="{{ dados.bairro|default:'' }}"
+             class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-slate-600 mb-1.5">Cidade</label>
+      <input type="text" name="cidade"
+             value="{{ dados.localidade|default:'' }}"
+             class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-slate-600 mb-1.5">UF</label>
+      <input type="text" name="estado"
+             value="{{ dados.uf|default:'' }}" maxlength="2"
+             class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+
+  </div>
+</div>

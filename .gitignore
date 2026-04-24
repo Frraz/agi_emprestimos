@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+/staticfiles/
+/media/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Setup script (opcional remover do git)
+setup.sh

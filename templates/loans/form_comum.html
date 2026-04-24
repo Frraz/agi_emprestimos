@@ -1,0 +1,48 @@
+{% extends "base/base.html" %}
+{% block title %}Novo Empréstimo Comum{% endblock %}
+{% block page_title %}Novo Empréstimo Comum{% endblock %}
+{% block page_subtitle %}
+  <p class="text-xs text-slate-500 mt-0.5">Cliente: <strong>{{ cliente.nome }}</strong></p>
+{% endblock %}
+{% block page_actions %}
+  <a href="{% url 'web_customers:detail' pk=cliente.id %}"
+     class="text-sm text-slate-500 hover:text-slate-700 font-medium">← Voltar</a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-lg">
+  <div class="bg-white rounded-xl border border-slate-200 p-6">
+    <form method="post">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 mb-5">
+        {% for e in form.non_field_errors %}{{ e }}{% endfor %}
+      </div>
+      {% endif %}
+      <div class="space-y-4">
+        {% for field in form %}
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1.5">
+            {{ field.label }}
+            {% if field.field.required %}<span class="text-red-400 ml-0.5">*</span>{% endif %}
+          </label>
+          {{ field }}
+          {% if field.errors %}<p class="text-xs text-red-500 mt-1">{{ field.errors|first }}</p>{% endif %}
+          {% if field.help_text %}<p class="text-xs text-slate-400 mt-1">{{ field.help_text }}</p>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <div class="flex gap-3 mt-6">
+        <a href="{% url 'web_customers:detail' pk=cliente.id %}"
+           class="flex-1 text-center px-4 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50">
+          Cancelar
+        </a>
+        <button type="submit"
+                class="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+          Criar Empréstimo
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -90,7 +90,7 @@ DATABASES = {
         'HOST': config('DB_HOST', default='localhost'),
         'PORT': config('DB_PORT', default='5432'),
         'OPTIONS': {
-            'options': '-c default_transaction_isolation=read\ committed',
+            'options': '-c default_transaction_isolation=read committed',
         },
     }
 }

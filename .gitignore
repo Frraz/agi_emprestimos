@@ -30,3 +30,11 @@ Thumbs.db
 
 # Setup script (opcional remover do git)
 setup.sh
+
+# Produção
+.env
+.env.production
+staticfiles/
+media/
+logs/
+*.sql

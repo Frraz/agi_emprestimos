@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+.Python
+*.egg-info/
+
+# Django
+*.log
+db.sqlite3
+staticfiles/
+media/
+
+# Ambiente
+venv/
+.venv/
+env/
+.env
+.env.local
+.env.production
+
+# Git
+.git/
+.gitignore
+
+# Dev
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Docker
+Dockerfile
+docker-compose*.yml
+docker/
+
+# Docs
+*.md
+logica_de_negocio.md
+
+# Testes
+.pytest_cache/

@@ -8,6 +8,10 @@ SECRET_KEY = config('SECRET_KEY')
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://agiemprestimos.ferzion.com.br',
+]
+
 # ── Banco ──────────────────────────────────────────────────────────────────
 DATABASES = {
     'default': {

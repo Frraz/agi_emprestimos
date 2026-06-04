@@ -1,5 +1,12 @@
 from decimal import Decimal
 from django.db.models import Sum, Avg, Count
+from django.db.models.functions import TruncMonth
+
+# Abreviações de mês em pt-BR (índice 1–12) para os rótulos do gráfico de tendência.
+_MESES_PT = [
+    '', 'jan', 'fev', 'mar', 'abr', 'mai', 'jun',
+    'jul', 'ago', 'set', 'out', 'nov', 'dez',
+]
 
 
 def calcular_metricas_dashboard() -> dict:
@@ -55,6 +62,16 @@ def calcular_metricas_dashboard() -> dict:
         custo_inadimplencia=custo_inadimplencia,
     )
 
+    # ── Tendência de recebimentos (últimos meses) ──────────────────────────
+    recebimentos_mensais = _calcular_recebimentos_mensais()
+
+    # ── Ocupação do capital (sem query adicional) ──────────────────────────
+    capital_total = capital_op.total_capital
+    taxa_ocupacao = (
+        capital_emprestado / capital_total * 100
+        if capital_total and capital_total > 0 else Decimal('0')
+    )
+
     return {
         'capital_total_operador': capital_op.total_capital,
         'capital_emprestado': capital_emprestado,
@@ -73,7 +90,58 @@ def calcular_metricas_dashboard() -> dict:
         'custo_inadimplencia': custo_inadimplencia,
         'taxa_risco_operacao': taxa_risco['total'],
         'risco_composicao': taxa_risco,
+        'recebimentos_mensais': recebimentos_mensais,
+        'recebido_mes_atual': recebimentos_mensais[-1] if recebimentos_mensais else None,
+        'taxa_ocupacao_capital': round(taxa_ocupacao, 1),
     }
+
+
+def _calcular_recebimentos_mensais(meses: int = 6) -> list:
+    """
+    Série dos últimos `meses` meses (incluindo o atual), com total recebido e
+    parcela de juros. Meses sem pagamento aparecem zerados, em ordem cronológica.
+    Retorna: [{'label': 'jan/26', 'total': Decimal, 'juros': Decimal}, ...].
+    """
+    from datetime import date
+    from payments.infrastructure.models import Pagamento
+    from core.utils import arredondar_financeiro
+
+    hoje = date.today()
+
+    # Sequência contínua dos meses (do mais antigo ao atual) como (ano, mês).
+    seq = []
+    ano, mes = hoje.year, hoje.month
+    for _ in range(meses):
+        seq.append((ano, mes))
+        mes -= 1
+        if mes == 0:
+            mes = 12
+            ano -= 1
+    seq.reverse()
+
+    inicio = date(seq[0][0], seq[0][1], 1)
+
+    agregado = (
+        Pagamento.objects
+        .filter(deleted_at__isnull=True, data_pagamento__gte=inicio)
+        .annotate(mes_ref=TruncMonth('data_pagamento'))
+        .values('mes_ref')
+        .annotate(total=Sum('valor'), juros=Sum('valor_juros_pagos'))
+    )
+    por_mes = {
+        (row['mes_ref'].year, row['mes_ref'].month): row
+        for row in agregado
+    }
+
+    serie = []
+    for ano, mes in seq:
+        row = por_mes.get((ano, mes))
+        serie.append({
+            'label': f'{_MESES_PT[mes]}/{ano % 100:02d}',
+            'total': arredondar_financeiro((row['total'] if row else None) or Decimal('0')),
+            'juros': arredondar_financeiro((row['juros'] if row else None) or Decimal('0')),
+        })
+    return serie
 
 
 def _calcular_valor_em_atraso(vencidos) -> dict:

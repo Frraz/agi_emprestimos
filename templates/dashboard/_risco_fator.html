@@ -1,0 +1,13 @@
+{# Linha de fator do risco composto. Params: nome, valor (0–100), peso (str). #}
+<div>
+  <div class="flex items-center justify-between mb-1">
+    <span class="text-xs" style="color:var(--text)">{{ nome }}
+      <span class="text-2xs" style="color:var(--text-muted)">· {{ peso }}</span>
+    </span>
+    <span class="text-xs font-semibold" style="color:var(--text-strong)">{{ valor|floatformat:0 }}</span>
+  </div>
+  <div class="bar-track" style="height:5px">
+    <div class="bar-fill {% if valor > 60 %}bg-red-500{% elif valor > 30 %}bg-amber-400{% else %}bg-emerald-500{% endif %}"
+         data-bar="{{ valor|floatformat:0 }}"></div>
+  </div>
+</div>

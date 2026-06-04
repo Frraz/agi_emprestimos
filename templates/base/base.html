@@ -224,6 +224,10 @@
     @keyframes shimmer { from{background-position:-200% 0} to{background-position:200% 0} }
     .skeleton { background:linear-gradient(90deg,var(--surface-2) 25%,var(--border) 50%,var(--surface-2) 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; border-radius:8px; }
 
+    /* ── Barras de progresso animadas (reutilizável) ───────────────────── */
+    .bar-track { height:6px; border-radius:999px; background:var(--surface-2); overflow:hidden; }
+    .bar-fill  { height:100%; border-radius:999px; width:0; transition:width 1s cubic-bezier(.22,1,.36,1); }
+
     /* ── Reduced motion ────────────────────────────────────────────────── */
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
@@ -556,6 +560,48 @@ function showToast(msg, type = 'info', duration = 4500) {
 /* ── HTMX indicador ──────────────────────────────────────────────────── */
 document.addEventListener('htmx:beforeRequest', () => document.body.classList.add('htmx-loading'));
 document.addEventListener('htmx:afterRequest',  () => document.body.classList.remove('htmx-loading'));
+
+/* ── Contador animado (reutilizável) ──────────────────────────────────────
+   Uso: <span data-count="1234.56" data-prefix="R$ " data-decimals="2"></span>
+   Anima de 0 ao valor ao entrar na viewport. Respeita prefers-reduced-motion. */
+const _reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function _fmtCount(v, decimals) {
+  return Number(v).toLocaleString('pt-BR', {
+    minimumFractionDigits: decimals, maximumFractionDigits: decimals,
+  });
+}
+function animateCount(el) {
+  if (el.dataset.counted) return;
+  el.dataset.counted = '1';
+  const target = parseFloat(el.dataset.count || '0') || 0;
+  const decimals = parseInt(el.dataset.decimals || '0', 10);
+  const prefix = el.dataset.prefix || '';
+  const suffix = el.dataset.suffix || '';
+  if (_reduceMotion || target === 0) {
+    el.textContent = prefix + _fmtCount(target, decimals) + suffix;
+    return;
+  }
+  const dur = 900, start = performance.now();
+  function tick(now) {
+    const p = Math.min(1, (now - start) / dur);
+    const eased = 1 - Math.pow(1 - p, 3);          // easeOutCubic
+    el.textContent = prefix + _fmtCount(target * eased, decimals) + suffix;
+    if (p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+const _countObserver = ('IntersectionObserver' in window)
+  ? new IntersectionObserver((entries, obs) => {
+      entries.forEach(e => { if (e.isIntersecting) { animateCount(e.target); obs.unobserve(e.target); } });
+    }, { threshold: .4 })
+  : null;
+function initCounters(root = document) {
+  root.querySelectorAll('[data-count]:not([data-counted])').forEach(el => {
+    if (_countObserver) _countObserver.observe(el); else animateCount(el);
+  });
+}
+document.addEventListener('DOMContentLoaded', () => initCounters());
+document.addEventListener('htmx:afterSettle', e => initCounters(e.target));
 </script>
 
 {% block extra_js %}{% endblock %}

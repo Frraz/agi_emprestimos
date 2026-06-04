@@ -18,177 +18,278 @@
 {% endblock %}
 
 {% block content %}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
 
-{# ── KPIs Linha 1: Capital ────────────────────────────────────────────── #}
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+  {# ══ HERO — Capital da operação ════════════════════════════════════════ #}
+  <section class="sm:col-span-2 lg:col-span-7 card relative overflow-hidden p-6"
+           aria-label="Capital da operação">
+    {# brilho decorativo #}
+    <div class="pointer-events-none absolute -top-16 -right-12 w-56 h-56 rounded-full opacity-[.18] blur-3xl"
+         style="background:radial-gradient(circle,var(--brand-400),transparent 70%)"></div>
 
-  <div class="kpi-card border-l-4 border-l-blue-500">
-    <div class="kpi-label">Capital Total</div>
-    <div class="kpi-value">R$ {{ metricas.capital_total_operador|floatformat:2 }}</div>
-    <div class="kpi-sub">Base disponível para operar</div>
-  </div>
+    <div class="relative flex flex-col sm:flex-row sm:items-center gap-6">
+      {# números #}
+      <div class="flex-1 min-w-0">
+        <p class="kpi-label">Capital Total da Operação</p>
+        <p class="font-display font-extrabold tracking-tight leading-none mt-1
+                  text-[2rem] sm:text-[2.5rem]" style="color:var(--text-strong)">
+          <span data-count="{{ metricas.capital_total_operador|floatformat:2 }}"
+                data-prefix="R$ " data-decimals="2">R$ {{ metricas.capital_total_operador|floatformat:2 }}</span>
+        </p>
 
-  <div class="kpi-card border-l-4 border-l-violet-500">
-    <div class="kpi-label">Capital Emprestado</div>
-    <div class="kpi-value" style="color:#7c3aed">R$ {{ metricas.capital_emprestado|floatformat:2 }}</div>
-    <div class="kpi-sub">{{ metricas.total_emprestimos_ativos }} empréstimo{{ metricas.total_emprestimos_ativos|pluralize }} ativo{{ metricas.total_emprestimos_ativos|pluralize }}</div>
-  </div>
+        <div class="mt-5 grid grid-cols-2 gap-3">
+          <div class="rounded-xl p-3 border" style="background:var(--surface-2);border-color:var(--border)">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full" style="background:var(--brand-500)"></span>
+              <span class="text-2xs font-bold uppercase tracking-wide" style="color:var(--text-muted)">Emprestado</span>
+            </div>
+            <p class="text-sm font-bold mt-1" style="color:var(--text-strong)">
+              <span data-count="{{ metricas.capital_emprestado|floatformat:2 }}" data-prefix="R$ " data-decimals="2">R$ {{ metricas.capital_emprestado|floatformat:2 }}</span>
+            </p>
+            <p class="text-2xs mt-0.5" style="color:var(--text-muted)">
+              {{ metricas.total_emprestimos_ativos }} ativo{{ metricas.total_emprestimos_ativos|pluralize }}
+            </p>
+          </div>
+          <div class="rounded-xl p-3 border" style="background:var(--surface-2);border-color:var(--border)">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full" style="background:{% if metricas.capital_em_caixa < 0 %}#ef4444{% else %}#94a3b8{% endif %}"></span>
+              <span class="text-2xs font-bold uppercase tracking-wide" style="color:var(--text-muted)">Em caixa</span>
+            </div>
+            <p class="text-sm font-bold mt-1 {% if metricas.capital_em_caixa < 0 %}text-red-600{% else %}text-emerald-600{% endif %}">
+              <span data-count="{{ metricas.capital_em_caixa|floatformat:2 }}" data-prefix="R$ " data-decimals="2">R$ {{ metricas.capital_em_caixa|floatformat:2 }}</span>
+            </p>
+            <p class="text-2xs mt-0.5" style="color:var(--text-muted)">Disponível p/ emprestar</p>
+          </div>
+        </div>
+      </div>
 
-  <div class="kpi-card border-l-4 border-l-emerald-500">
-    <div class="kpi-label">Capital em Caixa</div>
-    <div class="kpi-value {% if metricas.capital_em_caixa > 0 %}text-emerald-600{% else %}text-red-600{% endif %}">
-      R$ {{ metricas.capital_em_caixa|floatformat:2 }}
+      {# gauge de ocupação #}
+      <div class="flex-shrink-0 flex flex-col items-center justify-center">
+        <div class="relative w-[150px] h-[150px]">
+          <svg viewBox="0 0 120 120" class="w-full h-full -rotate-90" role="img"
+               aria-label="Ocupação do capital: {{ metricas.taxa_ocupacao_capital|floatformat:0 }}%">
+            <defs>
+              <linearGradient id="gradCapital" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#34d399"/>
+                <stop offset="100%" stop-color="#059669"/>
+              </linearGradient>
+            </defs>
+            <circle cx="60" cy="60" r="52" fill="none" stroke="var(--surface-2)" stroke-width="12"/>
+            <circle class="gauge-arc" data-pct="{{ metricas.taxa_ocupacao_capital|floatformat:1 }}"
+                    cx="60" cy="60" r="52" fill="none" stroke="url(#gradCapital)"
+                    stroke-width="12" stroke-linecap="round"/>
+          </svg>
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <span class="font-display text-2xl font-extrabold" style="color:var(--text-strong)">{{ metricas.taxa_ocupacao_capital|floatformat:0 }}%</span>
+            <span class="text-2xs font-semibold uppercase tracking-wide" style="color:var(--text-muted)">Ocupação</span>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="kpi-sub">Disponível para novos empréstimos</div>
-  </div>
+  </section>
 
-</div>
+  {# ══ Risco da operação ═════════════════════════════════════════════════ #}
+  {% with risco=metricas.taxa_risco_operacao comp=metricas.risco_composicao %}
+  <section class="sm:col-span-2 lg:col-span-5 card p-6" aria-label="Risco da operação">
+    <div class="flex items-start justify-between gap-4">
+      <div class="flex-1">
+        <p class="kpi-label">Risco da Operação</p>
+        <div class="flex items-baseline gap-2 mt-1">
+          <span class="font-display text-3xl font-extrabold leading-none
+                {% if risco > 20 %}text-red-600{% elif risco > 10 %}text-amber-600{% else %}text-emerald-600{% endif %}">
+            {{ risco|floatformat:1 }}%
+          </span>
+          <span class="badge {% if risco > 20 %}badge-red{% elif risco > 10 %}badge-yellow{% else %}badge-green{% endif %}">
+            {% if risco > 20 %}Alto{% elif risco > 10 %}Moderado{% else %}Baixo{% endif %}
+          </span>
+        </div>
+        <p class="text-2xs mt-1" style="color:var(--text-muted)">Índice composto e ponderado</p>
+      </div>
+      {# mini gauge semicircular #}
+      <div class="flex-shrink-0">
+        <svg viewBox="0 0 140 78" class="w-[120px] h-[66px]" role="img"
+             aria-label="Medidor de risco: {{ risco|floatformat:0 }} por cento">
+          <path d="M 12 70 A 58 58 0 0 1 128 70" fill="none" stroke="var(--surface-2)"
+                stroke-width="11" stroke-linecap="round"/>
+          <path class="gauge-arc" data-pct="{{ risco|floatformat:1 }}"
+                d="M 12 70 A 58 58 0 0 1 128 70" fill="none"
+                stroke="{% if risco > 20 %}#ef4444{% elif risco > 10 %}#f59e0b{% else %}#10b981{% endif %}"
+                stroke-width="11" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
 
-{# ── KPIs Linha 2: Risco ──────────────────────────────────────────────── #}
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+    {# breakdown #}
+    <div class="mt-4 space-y-2.5">
+      {% include "dashboard/_risco_fator.html" with nome="Cobertura penhora" valor=comp.cobertura peso="40%" %}
+      {% include "dashboard/_risco_fator.html" with nome="Histórico cliente" valor=comp.historico peso="30%" %}
+      {% include "dashboard/_risco_fator.html" with nome="Comprometimento" valor=comp.comprometimento peso="20%" %}
+      {% include "dashboard/_risco_fator.html" with nome="Tempo exposição" valor=comp.tempo peso="10%" %}
+    </div>
+  </section>
+  {% endwith %}
 
-  <div class="kpi-card">
+  {# ══ Faixa de KPIs ═════════════════════════════════════════════════════ #}
+  {# Inadimplência #}
+  <div class="lg:col-span-3 kpi-card">
     <div class="kpi-label">Inadimplência</div>
     <div class="kpi-value {% if metricas.taxa_inadimplencia > 15 %}text-red-600{% elif metricas.taxa_inadimplencia > 5 %}text-amber-600{% else %}text-emerald-600{% endif %}">
-      {{ metricas.taxa_inadimplencia|floatformat:1 }}%
+      <span data-count="{{ metricas.taxa_inadimplencia|floatformat:1 }}" data-decimals="1" data-suffix="%">{{ metricas.taxa_inadimplencia|floatformat:1 }}%</span>
     </div>
     <div class="kpi-sub">{{ metricas.inadimplentes }} em atraso</div>
-    <div class="mt-3 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-      <div class="h-full rounded-full {% if metricas.taxa_inadimplencia > 15 %}bg-red-500{% elif metricas.taxa_inadimplencia > 5 %}bg-amber-400{% else %}bg-emerald-500{% endif %}"
-           style="width:min({{ metricas.taxa_inadimplencia|floatformat:0 }}%,100%)"></div>
+    <div class="mt-3 bar-track">
+      <div class="bar-fill {% if metricas.taxa_inadimplencia > 15 %}bg-red-500{% elif metricas.taxa_inadimplencia > 5 %}bg-amber-400{% else %}bg-emerald-500{% endif %}"
+           data-bar="{{ metricas.taxa_inadimplencia|floatformat:0 }}"></div>
     </div>
   </div>
 
-  <div class="kpi-card">
+  {# Taxa média de juros #}
+  <div class="lg:col-span-3 kpi-card">
     <div class="kpi-label">Taxa Média de Juros</div>
-    <div class="kpi-value">{{ metricas.taxa_juros_media_mensal|floatformat:2 }}%</div>
+    <div class="kpi-value">
+      <span data-count="{{ metricas.taxa_juros_media_mensal|floatformat:2 }}" data-decimals="2" data-suffix="%">{{ metricas.taxa_juros_media_mensal|floatformat:2 }}%</span>
+    </div>
     <div class="kpi-sub">ao mês · carteira ativa</div>
   </div>
 
-  <div class="kpi-card">
-    <div class="kpi-label">Risco da Operação</div>
-    <div class="kpi-value {% if metricas.taxa_risco_operacao > 20 %}text-red-600{% elif metricas.taxa_risco_operacao > 10 %}text-amber-600{% else %}text-emerald-600{% endif %}">
-      {{ metricas.taxa_risco_operacao|floatformat:1 }}%
-    </div>
-    <div class="kpi-sub" title="Cobertura 40% · Histórico 30% · Comprometimento 20% · Tempo 10%">
-      Penh {{ metricas.risco_composicao.cobertura|floatformat:0 }} ·
-      Hist {{ metricas.risco_composicao.historico|floatformat:0 }} ·
-      Cap {{ metricas.risco_composicao.comprometimento|floatformat:0 }} ·
-      Tmp {{ metricas.risco_composicao.tempo|floatformat:0 }}
-    </div>
-  </div>
-
-  <div class="kpi-card">
+  {# Valor em atraso #}
+  <div class="lg:col-span-3 kpi-card">
     <div class="kpi-label">Valor em Atraso</div>
     <div class="kpi-value {% if metricas.qtd_em_atraso > 0 %}text-red-600{% else %}text-emerald-600{% endif %}">
-      R$ {{ metricas.valor_em_atraso|floatformat:2 }}
+      <span data-count="{{ metricas.valor_em_atraso|floatformat:2 }}" data-prefix="R$ " data-decimals="2">R$ {{ metricas.valor_em_atraso|floatformat:2 }}</span>
     </div>
     <div class="kpi-sub">{{ metricas.qtd_em_atraso }} empréstimo{{ metricas.qtd_em_atraso|pluralize }} em atraso</div>
   </div>
 
-</div>
-
-{# ── Custo inadimplência por penhora ──────────────────────────────────── #}
-{% with ci=metricas.custo_inadimplencia %}
-{% if ci.saldo_devedor_inadimplentes > 0 %}
-<div class="card border border-red-200 p-4 mb-4" style="background:var(--danger-soft)">
-  <div class="flex items-center gap-2 mb-3">
-    <div class="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-      <svg class="w-3 h-3 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-      </svg>
+  {# Recebido no mês #}
+  <div class="lg:col-span-3 kpi-card">
+    <div class="kpi-label">Recebido no Mês</div>
+    {% with rec=metricas.recebido_mes_atual %}
+    <div class="kpi-value text-emerald-600">
+      <span data-count="{{ rec.total|default:0|floatformat:2 }}" data-prefix="R$ " data-decimals="2">R$ {{ rec.total|default:0|floatformat:2 }}</span>
     </div>
-    <h3 class="text-sm font-semibold text-red-800">Custo da Inadimplência Ajustado por Penhora</h3>
+    <div class="kpi-sub">Juros: R$ {{ rec.juros|default:0|floatformat:2 }} · {{ rec.label }}</div>
+    {% endwith %}
   </div>
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-    {% for label, value, color in ci|dictsort:"0" %}{% endfor %}
-    <div class="bg-white rounded-lg p-3 border border-red-100">
-      <p class="text-xs text-red-400 font-semibold uppercase tracking-wide">Saldo em aberto</p>
-      <p class="text-sm font-bold text-red-800 mt-1">R$ {{ ci.saldo_devedor_inadimplentes|floatformat:2 }}</p>
-    </div>
-    <div class="bg-white rounded-lg p-3 border border-red-100">
-      <p class="text-xs text-slate-400 font-semibold uppercase tracking-wide">Garantias</p>
-      <p class="text-sm font-bold text-slate-700 mt-1">R$ {{ ci.valor_garantias_total|floatformat:2 }}</p>
-    </div>
-    <div class="bg-white rounded-lg p-3 border border-red-100">
-      <p class="text-xs text-emerald-600 font-semibold uppercase tracking-wide">Recuperação est.</p>
-      <p class="text-sm font-bold text-emerald-700 mt-1">R$ {{ ci.recuperacao_estimada|floatformat:2 }}</p>
-    </div>
-    <div class="bg-white rounded-lg p-3 border border-red-100">
-      <p class="text-xs text-red-400 font-semibold uppercase tracking-wide">Perda ajustada</p>
-      <p class="text-sm font-bold text-red-800 mt-1">R$ {{ ci.perda_ajustada_total|floatformat:2 }}</p>
-    </div>
-  </div>
-  <div>
-    <div class="flex justify-between text-xs text-red-600 mb-1">
-      <span>Cobertura por penhoras</span>
-      <span class="font-semibold">{{ ci.cobertura_percentual }}%</span>
-    </div>
-    <div class="h-2 bg-red-200 rounded-full overflow-hidden">
-      <div class="h-full bg-emerald-500 rounded-full" style="width:{{ ci.cobertura_percentual }}%"></div>
-    </div>
-  </div>
-</div>
-{% endif %}
-{% endwith %}
 
-{# ── Projeções + Chart + Recentes ─────────────────────────────────────── #}
-<div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
-
-  {# Coluna esquerda: projeções + donut #}
-  <div class="space-y-4">
-
-    <div class="card p-5">
-      <h3 class="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-        <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-        </svg>
-        Projeção Mensal de Lucro
-      </h3>
-      <div class="space-y-2.5">
-        <div class="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-100">
-          <div>
-            <p class="text-xs text-emerald-700 font-semibold">Otimista</p>
-            <p class="text-xs text-emerald-500 mt-0.5">Zero inadimplência</p>
-          </div>
-          <p class="text-sm font-bold text-emerald-700">R$ {{ metricas.projecoes_lucro.otimista|floatformat:2 }}</p>
-        </div>
-        <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
-          <div>
-            <p class="text-xs text-blue-700 font-semibold">Realista</p>
-            <p class="text-xs text-blue-400 mt-0.5">Taxa atual de atraso</p>
-          </div>
-          <p class="text-sm font-bold text-blue-700">R$ {{ metricas.projecoes_lucro.realista|floatformat:2 }}</p>
-        </div>
-        <div class="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-100">
-          <div>
-            <p class="text-xs text-amber-700 font-semibold">Pessimista</p>
-            <p class="text-xs text-amber-400 mt-0.5">Inadimplência 1,5×</p>
-          </div>
-          <p class="text-sm font-bold text-amber-700">R$ {{ metricas.projecoes_lucro.pessimista|floatformat:2 }}</p>
-        </div>
+  {# ══ Tendência de recebimentos ═════════════════════════════════════════ #}
+  <div class="sm:col-span-2 lg:col-span-8 card p-5">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="text-sm font-semibold" style="color:var(--text-strong)">Recebimentos · Últimos 6 meses</h3>
+      <div class="flex items-center gap-3 text-2xs font-semibold" style="color:var(--text-muted)">
+        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm" style="background:#059669"></span>Total</span>
+        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm" style="background:#6366f1"></span>Juros</span>
       </div>
     </div>
-
-    <div class="card p-5">
-      <h3 class="text-sm font-semibold text-slate-700 mb-3">Capital por Modalidade</h3>
-      <canvas id="chartTipo" height="170"></canvas>
-    </div>
-
+    <div class="relative h-[220px]"><canvas id="chartTendencia"></canvas></div>
   </div>
 
-  {# Coluna direita: empréstimos recentes #}
-  <div class="xl:col-span-2 card overflow-hidden">
+  {# ══ Capital por modalidade ════════════════════════════════════════════ #}
+  <div class="sm:col-span-2 lg:col-span-4 card p-5">
+    <h3 class="text-sm font-semibold mb-3" style="color:var(--text-strong)">Capital por Modalidade</h3>
+    <div class="relative h-[220px] flex items-center justify-center">
+      <canvas id="chartTipo"></canvas>
+      <div id="chartTipoCenter" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style="display:none">
+        <span class="text-2xs font-semibold uppercase tracking-wide" style="color:var(--text-muted)">Total</span>
+        <span class="font-display text-base font-bold" style="color:var(--text-strong)">R$ {{ metricas.capital_emprestado|floatformat:2 }}</span>
+      </div>
+    </div>
+  </div>
+
+  {# ══ Custo da inadimplência ajustado por penhora ═══════════════════════ #}
+  {% with ci=metricas.custo_inadimplencia %}
+  {% if ci.saldo_devedor_inadimplentes > 0 %}
+  <div class="sm:col-span-2 lg:col-span-12 card p-5 border border-red-200" style="background:var(--danger-soft)">
+    <div class="flex items-center gap-2 mb-4">
+      <div class="w-6 h-6 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
+        <svg class="w-3.5 h-3.5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+        </svg>
+      </div>
+      <h3 class="text-sm font-semibold text-red-800">Custo da Inadimplência Ajustado por Penhora</h3>
+    </div>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      <div class="bg-white rounded-xl p-3 border border-red-100">
+        <p class="text-2xs text-red-400 font-semibold uppercase tracking-wide">Saldo em aberto</p>
+        <p class="text-sm font-bold text-red-800 mt-1">R$ {{ ci.saldo_devedor_inadimplentes|floatformat:2 }}</p>
+      </div>
+      <div class="bg-white rounded-xl p-3 border border-red-100">
+        <p class="text-2xs text-slate-400 font-semibold uppercase tracking-wide">Garantias</p>
+        <p class="text-sm font-bold text-slate-700 mt-1">R$ {{ ci.valor_garantias_total|floatformat:2 }}</p>
+      </div>
+      <div class="bg-white rounded-xl p-3 border border-red-100">
+        <p class="text-2xs text-emerald-600 font-semibold uppercase tracking-wide">Recuperação est.</p>
+        <p class="text-sm font-bold text-emerald-700 mt-1">R$ {{ ci.recuperacao_estimada|floatformat:2 }}</p>
+      </div>
+      <div class="bg-white rounded-xl p-3 border border-red-100">
+        <p class="text-2xs text-red-400 font-semibold uppercase tracking-wide">Perda ajustada</p>
+        <p class="text-sm font-bold text-red-800 mt-1">R$ {{ ci.perda_ajustada_total|floatformat:2 }}</p>
+      </div>
+    </div>
+    <div>
+      <div class="flex justify-between text-xs text-red-600 mb-1.5">
+        <span>Cobertura por penhoras</span>
+        <span class="font-semibold">{{ ci.cobertura_percentual }}%</span>
+      </div>
+      <div class="bar-track" style="background:rgba(239,68,68,.18)">
+        <div class="bar-fill bg-emerald-500" data-bar="{{ ci.cobertura_percentual|floatformat:0 }}"></div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  {# ══ Projeções de lucro ════════════════════════════════════════════════ #}
+  {% with proj=metricas.projecoes_lucro %}
+  <div class="sm:col-span-2 lg:col-span-4 card p-5">
+    <h3 class="text-sm font-semibold mb-4 flex items-center gap-2" style="color:var(--text-strong)">
+      <svg class="w-4 h-4" style="color:var(--text-muted)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 8-8m0 0h-5m5 0v5"/>
+      </svg>
+      Projeção Mensal de Lucro
+    </h3>
+    <div class="space-y-4" id="projecoes"
+         data-otimista="{{ proj.otimista|floatformat:2 }}"
+         data-realista="{{ proj.realista|floatformat:2 }}"
+         data-pessimista="{{ proj.pessimista|floatformat:2 }}">
+      <div>
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-xs font-semibold text-emerald-600">Otimista</span>
+          <span class="text-sm font-bold" style="color:var(--text-strong)">R$ {{ proj.otimista|floatformat:2 }}</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill bg-emerald-500" data-proj="otimista"></div></div>
+        <p class="text-2xs mt-1" style="color:var(--text-muted)">Zero inadimplência</p>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-xs font-semibold text-blue-600">Realista</span>
+          <span class="text-sm font-bold" style="color:var(--text-strong)">R$ {{ proj.realista|floatformat:2 }}</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill bg-blue-500" data-proj="realista"></div></div>
+        <p class="text-2xs mt-1" style="color:var(--text-muted)">Taxa atual de atraso</p>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-xs font-semibold text-amber-600">Pessimista</span>
+          <span class="text-sm font-bold" style="color:var(--text-strong)">R$ {{ proj.pessimista|floatformat:2 }}</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill bg-amber-400" data-proj="pessimista"></div></div>
+        <p class="text-2xs mt-1" style="color:var(--text-muted)">Inadimplência 1,5×</p>
+      </div>
+    </div>
+  </div>
+  {% endwith %}
+
+  {# ══ Empréstimos recentes ══════════════════════════════════════════════ #}
+  <div class="sm:col-span-2 lg:col-span-8 card overflow-hidden">
     <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
-      <h3 class="text-sm font-semibold text-slate-700">Empréstimos Recentes</h3>
-      <a href="{% url 'web_loans:list' %}" class="text-xs font-semibold text-blue-600 hover:text-blue-700">
-        Ver todos →
-      </a>
+      <h3 class="text-sm font-semibold" style="color:var(--text-strong)">Empréstimos Recentes</h3>
+      <a href="{% url 'web_loans:list' %}" class="text-xs font-semibold text-blue-600 hover:text-blue-700">Ver todos →</a>
     </div>
     <div class="divide-y divide-slate-50">
       {% for emp in emprestimos_recentes %}
       <a href="{% url 'web_loans:detail' pk=emp.id %}"
-         class="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors">
+         class="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors">
         <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold
                     {% if emp.tipo == 'comum' %}bg-blue-100 text-blue-700
                     {% elif emp.tipo == 'parcelado' %}bg-violet-100 text-violet-700
@@ -196,13 +297,14 @@
           {{ emp.tipo|first|upper }}
         </div>
         <div class="flex-1 min-w-0">
-          <p class="text-sm font-semibold text-slate-900 truncate">{{ emp.cliente.nome }}</p>
-          <p class="text-xs text-slate-400 mt-0.5 truncate">
+          <p class="text-sm font-semibold truncate" style="color:var(--text-strong)">{{ emp.cliente.nome }}</p>
+          <p class="text-xs mt-0.5 truncate" style="color:var(--text-muted)">
             {{ emp.get_tipo_display }} · {{ emp.data_inicio|date:"d/m/Y" }}
           </p>
         </div>
         <div class="flex-shrink-0 text-right">
-          <p class="text-sm font-bold {% if emp.status == 'inadimplente' %}text-red-600{% else %}text-slate-900{% endif %}">
+          <p class="text-sm font-bold {% if emp.status == 'inadimplente' %}text-red-600{% else %}{% endif %}"
+             {% if emp.status != 'inadimplente' %}style="color:var(--text-strong)"{% endif %}>
             R$ {{ emp.capital_atual|floatformat:2 }}
           </p>
           <span class="badge {% if emp.status == 'ativo' %}badge-green{% elif emp.status == 'inadimplente' %}badge-red{% elif emp.status == 'quitado' %}badge-slate{% else %}badge-yellow{% endif %}">
@@ -217,8 +319,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
           </svg>
         </div>
-        <p class="text-sm font-medium text-slate-600">Nenhum empréstimo ainda</p>
-        <p class="text-xs text-slate-400 mt-1">Cadastre um cliente e crie o primeiro empréstimo</p>
+        <p class="text-sm font-medium" style="color:var(--text)">Nenhum empréstimo ainda</p>
+        <p class="text-xs mt-1" style="color:var(--text-muted)">Cadastre um cliente e crie o primeiro empréstimo</p>
         <a href="{% url 'web_customers:create' %}" class="btn btn-primary btn-sm mt-4">Cadastrar cliente</a>
       </div>
       {% endfor %}
@@ -229,65 +331,161 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ metricas.recebimentos_mensais|json_script:"dados-recebimentos" }}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  const ctx = document.getElementById('chartTipo');
-  if (!ctx) return;
-  const data = [
-    {{ metricas.capital_por_tipo.comum|floatformat:2 }},
-    {{ metricas.capital_por_tipo.parcelado|floatformat:2 }},
-    {{ metricas.capital_por_tipo.diaria|floatformat:2 }},
-  ];
-  const total = data.reduce((a, b) => a + b, 0);
-  if (total === 0) {
-    ctx.parentElement.innerHTML = '<p style="text-align:center;color:var(--text-muted);font-size:13px;padding:24px 0">Sem dados</p>';
-    return;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const brl = v => Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  /* ── Gauges SVG (anel + semicírculo) ──────────────────────────────── */
+  function initGauges() {
+    document.querySelectorAll('.gauge-arc').forEach(arc => {
+      const len = arc.getTotalLength();
+      const pct = Math.max(0, Math.min(100, parseFloat(arc.dataset.pct) || 0));
+      arc.style.strokeDasharray = len;
+      arc.style.strokeDashoffset = len;
+      // força reflow antes de animar
+      arc.getBoundingClientRect();
+      arc.style.transition = reduceMotion ? 'none' : 'stroke-dashoffset 1.1s cubic-bezier(.22,1,.36,1)';
+      arc.style.strokeDashoffset = len * (1 - pct / 100);
+    });
+  }
+  initGauges();
+
+  /* ── Barras animadas (inadimplência, cobertura, projeções) ────────── */
+  function setBars() {
+    document.querySelectorAll('.bar-fill[data-bar]').forEach(b => {
+      b.style.width = Math.min(100, parseFloat(b.dataset.bar) || 0) + '%';
+    });
+    const proj = document.getElementById('projecoes');
+    if (proj) {
+      const vals = ['otimista', 'realista', 'pessimista'].map(k => parseFloat(proj.dataset[k]) || 0);
+      const max = Math.max(...vals, 1);
+      proj.querySelectorAll('.bar-fill[data-proj]').forEach(b => {
+        const v = parseFloat(proj.dataset[b.dataset.proj]) || 0;
+        b.style.width = Math.max(2, (v / max) * 100) + '%';
+      });
+    }
+  }
+  // pequena espera para a transição CSS animar a partir de 0
+  requestAnimationFrame(() => requestAnimationFrame(setBars));
+
+  /* ══ Charts ════════════════════════════════════════════════════════ */
+  const recebimentos = JSON.parse(document.getElementById('dados-recebimentos').textContent || '[]');
+  let charts = [];
+
+  function tokens() {
+    const dark = document.documentElement.classList.contains('dark');
+    return {
+      dark,
+      grid: dark ? 'rgba(255,255,255,.06)' : 'rgba(15,23,42,.06)',
+      tick: dark ? '#7c8aa0' : '#94a3b8',
+      legend: dark ? '#cbd5e1' : '#475569',
+      surface: dark ? '#121821' : '#ffffff',
+    };
   }
 
-  let chart = null;
-  function render() {
-    const dark = document.documentElement.classList.contains('dark');
-    if (chart) chart.destroy();
-    chart = new Chart(ctx, {
-      type: 'doughnut',
+  function buildTendencia() {
+    const ctx = document.getElementById('chartTendencia');
+    if (!ctx) return;
+    const t = tokens();
+    const labels = recebimentos.map(r => r.label);
+    const total = recebimentos.map(r => Number(r.total));
+    const juros = recebimentos.map(r => Number(r.juros));
+
+    const g1 = ctx.getContext('2d').createLinearGradient(0, 0, 0, 220);
+    g1.addColorStop(0, 'rgba(5,150,105,.28)'); g1.addColorStop(1, 'rgba(5,150,105,0)');
+    const g2 = ctx.getContext('2d').createLinearGradient(0, 0, 0, 220);
+    g2.addColorStop(0, 'rgba(99,102,241,.22)'); g2.addColorStop(1, 'rgba(99,102,241,0)');
+
+    return new Chart(ctx, {
+      type: 'line',
       data: {
-        labels: ['Comum', 'Parcelado', 'Diária'],
-        datasets: [{
-          data,
-          backgroundColor: ['#10b981', '#6366f1', '#f59e0b'],
-          borderColor: dark ? '#121821' : '#ffffff',
-          borderWidth: 3,
-          hoverOffset: 6,
-        }]
+        labels,
+        datasets: [
+          { label: 'Total', data: total, borderColor: '#059669', backgroundColor: g1,
+            fill: true, tension: .4, borderWidth: 2.5, pointRadius: 3, pointBackgroundColor: '#059669',
+            pointBorderColor: t.surface, pointBorderWidth: 2, pointHoverRadius: 5 },
+          { label: 'Juros', data: juros, borderColor: '#6366f1', backgroundColor: g2,
+            fill: true, tension: .4, borderWidth: 2.5, pointRadius: 3, pointBackgroundColor: '#6366f1',
+            pointBorderColor: t.surface, pointBorderWidth: 2, pointHoverRadius: 5 },
+        ]
       },
       options: {
-        responsive: true,
-        cutout: '72%',
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        animation: reduceMotion ? false : { duration: 900 },
         plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              color: dark ? '#cbd5e1' : '#475569',
-              font: { size: 11, family: 'Inter' },
-              padding: 12, usePointStyle: true, pointStyleWidth: 8
-            }
-          },
+          legend: { display: false },
           tooltip: {
-            callbacks: {
-              label: c => {
-                const pct = total > 0 ? ((c.raw / total) * 100).toFixed(1) : 0;
-                const fmt = Number(c.raw).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-                return ` R$ ${fmt} (${pct}%)`;
-              }
-            }
+            callbacks: { label: c => ` ${c.dataset.label}: R$ ${brl(c.raw)}` }
           }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: t.tick, font: { size: 11, family: 'Inter' } } },
+          y: { grid: { color: t.grid, drawBorder: false },
+               ticks: { color: t.tick, font: { size: 11, family: 'Inter' },
+                        callback: v => 'R$ ' + Number(v).toLocaleString('pt-BR') } }
         }
       }
     });
   }
 
-  render();
-  window.addEventListener('themechange', render);
+  function buildTipo() {
+    const ctx = document.getElementById('chartTipo');
+    const center = document.getElementById('chartTipoCenter');
+    if (!ctx) return;
+    const t = tokens();
+    const data = [
+      {{ metricas.capital_por_tipo.comum|floatformat:2 }},
+      {{ metricas.capital_por_tipo.parcelado|floatformat:2 }},
+      {{ metricas.capital_por_tipo.diaria|floatformat:2 }},
+    ];
+    const total = data.reduce((a, b) => a + b, 0);
+    if (total === 0) {
+      ctx.style.display = 'none';
+      if (center) center.style.display = 'none';
+      if (!ctx.parentElement.querySelector('.empty-tipo')) {
+        const p = document.createElement('p');
+        p.className = 'empty-tipo';
+        p.style.cssText = 'color:var(--text-muted);font-size:13px';
+        p.textContent = 'Sem capital emprestado';
+        ctx.parentElement.appendChild(p);
+      }
+      return;
+    }
+    if (center) center.style.display = 'flex';
+    return new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Comum', 'Parcelado', 'Diária'],
+        datasets: [{
+          data, backgroundColor: ['#3b82f6', '#8b5cf6', '#f59e0b'],
+          borderColor: t.surface, borderWidth: 3, hoverOffset: 6,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '72%',
+        animation: reduceMotion ? false : { duration: 900 },
+        plugins: {
+          legend: { position: 'bottom',
+            labels: { color: t.legend, font: { size: 11, family: 'Inter' },
+                      padding: 12, usePointStyle: true, pointStyleWidth: 8 } },
+          tooltip: { callbacks: { label: c => {
+            const pct = ((c.raw / total) * 100).toFixed(1);
+            return ` R$ ${brl(c.raw)} (${pct}%)`;
+          } } }
+        }
+      }
+    });
+  }
+
+  function buildCharts() {
+    charts.forEach(c => c && c.destroy());
+    charts = [buildTendencia(), buildTipo()];
+  }
+  buildCharts();
+  window.addEventListener('themechange', buildCharts);
 });
 </script>
 {% endblock %}

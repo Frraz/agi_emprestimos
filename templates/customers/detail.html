@@ -59,6 +59,37 @@
           <span class="font-bold text-slate-900">R$ {{ cliente.saldo_devedor_total|floatformat:2 }}</span>
         </div>
         {% endif %}
+
+        {# Renda e comprometimento de renda (campo opcional) #}
+        {% if cliente.renda_mensal %}
+        <div class="flex justify-between items-center">
+          <span class="text-slate-400 text-xs">Renda mensal</span>
+          <span class="text-xs text-slate-700">R$ {{ cliente.renda_mensal|floatformat:2 }}</span>
+        </div>
+        {% with comp=cliente.comprometimento_renda %}
+        {% if comp is not None %}
+        <div class="p-2.5 bg-slate-50 rounded-lg">
+          <div class="flex justify-between items-center mb-1.5">
+            <span class="text-slate-500 text-xs">Comprometimento de renda</span>
+            <span class="text-xs font-bold
+                  {% if comp >= 60 %}text-red-600{% elif comp >= 30 %}text-amber-600{% else %}text-emerald-600{% endif %}">
+              {{ comp|floatformat:0 }}%
+            </span>
+          </div>
+          <div class="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+            <div class="h-full rounded-full
+                 {% if comp >= 60 %}bg-red-500{% elif comp >= 30 %}bg-amber-500{% else %}bg-emerald-500{% endif %}"
+                 style="width: {{ comp|floatformat:0 }}%"></div>
+          </div>
+        </div>
+        {% endif %}
+        {% endwith %}
+        {% else %}
+        <div class="flex justify-between items-center">
+          <span class="text-slate-400 text-xs">Renda mensal</span>
+          <span class="text-xs text-slate-400 italic">Não informada</span>
+        </div>
+        {% endif %}
         <div class="flex justify-between items-center">
           <span class="text-slate-400 text-xs">CPF</span>
           <span class="font-mono text-xs text-slate-700">{{ cliente.cpf }}</span>

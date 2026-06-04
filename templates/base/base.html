@@ -43,6 +43,7 @@
   <style>
     /* ══ Tokens de tema ══════════════════════════════════════════════════ */
     :root {
+      color-scheme: light;
       --radius: 14px;
       --bg: #eef1f6;
       --surface: #ffffff;
@@ -64,6 +65,7 @@
       --scroll-thumb: #cbd5e1;
     }
     .dark {
+      color-scheme: dark;
       --bg: #080b11;
       --surface: #121821;
       --surface-2: #1a212c;
@@ -269,6 +271,23 @@
     .dark .hover\:bg-blue-50:hover   { background-color:rgba(59,130,246,.12) !important; }
     .dark .hover\:bg-green-100:hover { background-color:rgba(16,185,129,.18) !important; }
     .dark .hover\:bg-orange-100:hover { background-color:rgba(249,115,22,.18) !important; }
+
+    /* ── Form controls "nus" (sem utilitário de bg) no escuro ──────────────
+       :where() zera a especificidade do seletor de controle → utilitários
+       bg-* intencionais e o shim acima continuam vencendo; só preenchemos a
+       lacuna do fundo dos campos que não têm background próprio. */
+    .dark :where(
+      input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):not([type=color]):not([type=submit]):not([type=button]):not([type=image]),
+      select,
+      textarea
+    ) {
+      background-color: var(--surface);
+      color: var(--text-strong);
+      border-color: var(--border);
+    }
+    .dark input::placeholder,
+    .dark textarea::placeholder { color: var(--text-muted); }
+    .dark select option { background-color: var(--surface); color: var(--text-strong); }
   </style>
   {% block extra_head %}{% endblock %}
 </head>

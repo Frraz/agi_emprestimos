@@ -218,6 +218,27 @@ class Emprestimo(BaseModel):
             )
         return Decimal('0')
 
+    @property
+    def obrigacao_mensal(self) -> Decimal:
+        """
+        Obrigação mensal estimada do cliente para este empréstimo, usada no
+        cálculo de comprometimento de renda. Comum: juros do mês. Parcelado:
+        valor da próxima parcela em aberto. Zero se o empréstimo não está ativo.
+        """
+        if self.status not in ('ativo', 'inadimplente'):
+            return Decimal('0')
+        if self.tipo == 'comum':
+            return self.juros_mes
+        if self.tipo == 'parcelado':
+            proxima = (
+                self.parcelas
+                .filter(status__in=['pendente', 'parcialmente_pago', 'atrasado'])
+                .order_by('numero')
+                .first()
+            )
+            return proxima.valor_parcela if proxima else Decimal('0')
+        return Decimal('0')
+
 
 class ParcelaEmprestimo(BaseModel):
     """

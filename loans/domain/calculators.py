@@ -424,6 +424,20 @@ class CalculadoraRisco:
         return _r(min(Decimal('100'), normalizado))
 
     @staticmethod
+    def fator_comprometimento_renda(obrigacao_mensal, renda_mensal):
+        """
+        Percentual da renda mensal do cliente consumido pelas obrigações
+        mensais de empréstimo (0–100, com teto em 100). Quanto MAIOR o
+        comprometimento, MAIOR o risco.
+
+        Retorna None quando a renda não está informada (campo opcional) —
+        sinalizando à camada de apresentação que não há indicador a exibir.
+        """
+        if not renda_mensal or renda_mensal <= Decimal('0'):
+            return None
+        return _r(min(Decimal('100'), Decimal(obrigacao_mensal) / renda_mensal * 100))
+
+    @staticmethod
     def calcular_taxa_risco(
         cobertura: Decimal,
         historico: Decimal,

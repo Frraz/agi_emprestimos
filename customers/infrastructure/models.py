@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.db import models
 from core.models import BaseModel
 from core.validators import validate_cpf
@@ -58,6 +59,11 @@ class Cliente(BaseModel):
     tipo_residencia = models.CharField(
         max_length=15, choices=TIPO_RESIDENCIA_CHOICES, blank=True, null=True
     )
+    renda_mensal = models.DecimalField(
+        max_digits=12, decimal_places=2, blank=True, null=True,
+        verbose_name='Renda mensal (R$)',
+        help_text='Opcional. Usada para calcular o comprometimento de renda.',
+    )
 
     # ── Contato ────────────────────────────────────────────────────────────
     telefone_principal = models.CharField(max_length=20)
@@ -110,6 +116,32 @@ class Cliente(BaseModel):
 
     def __str__(self):
         return f"{self.nome} ({self.cpf})"
+
+    @property
+    def comprometimento_renda(self):
+        """
+        Percentual da renda mensal consumido pelas obrigações dos empréstimos
+        ativos (0–100). Cálculo delegado ao domínio (CalculadoraRisco).
+
+        Retorna None quando a renda não está informada ou não há empréstimo
+        ativo — nesses casos a interface não exibe o indicador.
+        """
+        from loans.domain.calculators import CalculadoraRisco
+
+        if not self.renda_mensal or self.renda_mensal <= Decimal('0'):
+            return None
+        obrigacao = sum(
+            (
+                e.obrigacao_mensal
+                for e in self.emprestimos.filter(
+                    status__in=['ativo', 'inadimplente'], deleted_at__isnull=True
+                )
+            ),
+            Decimal('0'),
+        )
+        if obrigacao <= Decimal('0'):
+            return None
+        return CalculadoraRisco.fator_comprometimento_renda(obrigacao, self.renda_mensal)
 
     @property
     def tem_emprestimo_ativo(self) -> bool:

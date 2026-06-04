@@ -303,3 +303,24 @@ class TestCalculadoraRisco:
         assert CalculadoraRisco.calcular_taxa_risco(
             Decimal('50'), Decimal('100'), Decimal('0'), Decimal('0')
         ) == Decimal('50.00')
+
+    def test_comprometimento_renda_percentual(self):
+        # obrigação 900 sobre renda 3000 = 30%
+        assert CalculadoraRisco.fator_comprometimento_renda(
+            Decimal('900'), Decimal('3000')
+        ) == Decimal('30.00')
+
+    def test_comprometimento_renda_satura_em_100(self):
+        # obrigação acima da renda satura em 100
+        assert CalculadoraRisco.fator_comprometimento_renda(
+            Decimal('4000'), Decimal('3000')
+        ) == Decimal('100.00')
+
+    def test_comprometimento_renda_sem_renda_eh_none(self):
+        # renda não informada (campo opcional) → None, sem indicador
+        assert CalculadoraRisco.fator_comprometimento_renda(
+            Decimal('900'), None
+        ) is None
+        assert CalculadoraRisco.fator_comprometimento_renda(
+            Decimal('900'), Decimal('0')
+        ) is None

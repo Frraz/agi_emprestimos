@@ -31,6 +31,7 @@ class ClienteSerializer(serializers.ModelSerializer):
         model = Cliente
         fields = [
             'id', 'nome', 'cpf', 'rg', 'data_nascimento', 'foto',
+            'renda_mensal',
             'telefone_principal', 'telefone_secundario', 'email',
             'cep', 'logradouro', 'numero', 'complemento',
             'bairro', 'cidade', 'estado',

@@ -12,7 +12,7 @@ class ClienteForm(forms.ModelForm):
         model = Cliente
         fields = [
             'nome', 'cpf', 'rg', 'cnh', 'data_nascimento', 'foto',
-            'profissao', 'estado_civil', 'tipo_residencia',
+            'profissao', 'estado_civil', 'tipo_residencia', 'renda_mensal',
             'telefone_principal', 'telefone_secundario', 'email',
             'instagram', 'facebook',
             'cep', 'logradouro', 'numero', 'complemento',
@@ -33,6 +33,9 @@ class ClienteForm(forms.ModelForm):
             'profissao': forms.TextInput(attrs={'class': _I, 'placeholder': 'Ex: Comerciante'}),
             'estado_civil': forms.Select(attrs={'class': _S}),
             'tipo_residencia': forms.Select(attrs={'class': _S}),
+            'renda_mensal': forms.NumberInput(attrs={
+                'class': _I, 'placeholder': 'Ex: 3000,00', 'step': '0.01', 'min': '0',
+            }),
             'telefone_principal': forms.TextInput(attrs={'class': _I, 'placeholder': '(00) 00000-0000'}),
             'telefone_secundario': forms.TextInput(attrs={'class': _I, 'placeholder': '(00) 00000-0000'}),
             'email': forms.EmailInput(attrs={'class': _I, 'placeholder': 'email@exemplo.com'}),

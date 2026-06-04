@@ -1,10 +1,43 @@
 """
 Models Django para Empréstimos e Parcelas.
 """
+from datetime import date
 from decimal import Decimal
 from django.db import models
 from core.models import BaseModel
 from core.validators import validate_taxa_juros, validate_capital_positivo
+
+
+class EmprestimoQuerySet(models.QuerySet):
+    """
+    Espelha, no ORM, os predicados de atraso definidos em
+    loans.domain.calculators.CalculadoraAtraso — fonte única da verdade.
+    """
+
+    def ativos(self):
+        return self.filter(
+            status__in=['ativo', 'inadimplente'],
+            deleted_at__isnull=True,
+        )
+
+    def vencidos(self, ref: date = None):
+        """
+        Empréstimos em atraso por DATA (independe do cron já ter rodado):
+          • comum: tem data_vencimento e ela já passou;
+          • parcelado: tem ao menos uma parcela em aberto já vencida.
+        """
+        ref = ref or date.today()
+        comum_q = models.Q(
+            tipo='comum',
+            data_vencimento__isnull=False,
+            data_vencimento__lt=ref,
+        )
+        parcelado_q = models.Q(
+            tipo='parcelado',
+            parcelas__status__in=['pendente', 'parcialmente_pago', 'atrasado'],
+            parcelas__data_vencimento__lt=ref,
+        )
+        return self.ativos().filter(comum_q | parcelado_q).distinct()
 
 
 class Emprestimo(BaseModel):
@@ -88,6 +121,8 @@ class Emprestimo(BaseModel):
 
     observacoes = models.TextField(blank=True, null=True)
 
+    objects = EmprestimoQuerySet.as_manager()
+
     class Meta:
         verbose_name = 'Empréstimo'
         verbose_name_plural = 'Empréstimos'
@@ -119,6 +154,69 @@ class Emprestimo(BaseModel):
         return self.pagamentos.aggregate(
             total=models.Sum('valor')
         )['total'] or Decimal('0')
+
+    # ── Atraso (delega ao domínio; baseado em data, não no status) ──────────
+    @property
+    def juros_mes(self) -> Decimal:
+        """Juros do mês corrente (empréstimo comum)."""
+        from loans.domain.calculators import CalculadoraEmprestimoComum
+        return CalculadoraEmprestimoComum.calcular_juros_mes(
+            self.capital_atual, self.taxa_juros_mensal
+        )
+
+    @property
+    def total_quitacao(self) -> Decimal:
+        """Valor para quitar hoje: capital + juros do mês (empréstimo comum)."""
+        from loans.domain.calculators import CalculadoraEmprestimoComum
+        return CalculadoraEmprestimoComum.calcular_total_quitacao(
+            self.capital_atual, self.taxa_juros_mensal
+        )
+
+    @property
+    def esta_vencido(self) -> bool:
+        from loans.domain.calculators import CalculadoraAtraso
+        ref = date.today()
+        if self.tipo == 'comum':
+            return CalculadoraAtraso.esta_vencido_comum(
+                self.status, self.data_vencimento, ref
+            )
+        if self.tipo == 'parcelado':
+            if self.status not in ('ativo', 'inadimplente'):
+                return False
+            return any(p.esta_atrasada for p in self.parcelas.all())
+        return False
+
+    @property
+    def dias_atraso(self) -> int:
+        from loans.domain.calculators import CalculadoraAtraso
+        ref = date.today()
+        if self.tipo == 'comum':
+            if not self.esta_vencido:
+                return 0
+            return CalculadoraAtraso.dias_atraso(self.data_vencimento, ref)
+        if self.tipo == 'parcelado':
+            atrasos = [
+                CalculadoraAtraso.dias_atraso(p.data_vencimento, ref)
+                for p in self.parcelas.all() if p.esta_atrasada
+            ]
+            return max(atrasos) if atrasos else 0
+        return 0
+
+    @property
+    def valor_em_atraso(self) -> Decimal:
+        """
+        Valor em atraso para fins de cobrança.
+        Comum: saldo devedor atual (capital_atual). Parcelado: soma do
+        valor em aberto das parcelas vencidas.
+        """
+        if self.tipo == 'comum':
+            return self.capital_atual if self.esta_vencido else Decimal('0')
+        if self.tipo == 'parcelado':
+            return sum(
+                (p.valor_em_aberto for p in self.parcelas.all() if p.esta_atrasada),
+                Decimal('0'),
+            )
+        return Decimal('0')
 
 
 class ParcelaEmprestimo(BaseModel):

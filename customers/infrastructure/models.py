@@ -11,6 +11,11 @@ class Cliente(BaseModel):
         ('vermelho', '🔴 Mau Pagador'),
     ]
 
+    PRIORIDADE_COBRANCA_CHOICES = [
+        ('essencial', 'Essencial'),
+        ('preferencial', 'Preferencial'),
+    ]
+
     ORIGEM_CHOICES = [
         ('indicacao', 'Indicação'),
         ('proprio', 'Prospecção Própria'),
@@ -87,6 +92,11 @@ class Cliente(BaseModel):
     classificacao = models.CharField(
         max_length=10, choices=CLASSIFICACAO_CHOICES,
         default='verde', db_index=True,
+    )
+    prioridade_cobranca = models.CharField(
+        max_length=12, choices=PRIORIDADE_COBRANCA_CHOICES,
+        default='preferencial', db_index=True,
+        help_text='Essencial = cobrar primeiro; Preferencial = prioridade normal.',
     )
 
     class Meta:

@@ -42,6 +42,7 @@ LOCAL_APPS = [
     'payments.apps.PaymentsConfig',
     'collaterals.apps.CollateralsConfig',
     'dashboard.apps.DashboardConfig',
+    'cobrancas.apps.CobrancasConfig',
     'audit.apps.AuditConfig',
 ]
 

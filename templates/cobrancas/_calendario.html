@@ -1,0 +1,49 @@
+<div id="calendario-cobrancas" class="card p-4">
+  <div class="flex items-center justify-between mb-3">
+    <button type="button"
+            hx-get="{% url 'web_cobrancas:calendario' %}?ano={{ nav_anterior.ano }}&mes={{ nav_anterior.mes }}"
+            hx-target="#calendario-cobrancas" hx-swap="outerHTML"
+            class="btn btn-sm">‹</button>
+    <p class="text-sm font-semibold text-slate-700 capitalize">{{ mes_ref|date:"F Y" }}</p>
+    <button type="button"
+            hx-get="{% url 'web_cobrancas:calendario' %}?ano={{ nav_seguinte.ano }}&mes={{ nav_seguinte.mes }}"
+            hx-target="#calendario-cobrancas" hx-swap="outerHTML"
+            class="btn btn-sm">›</button>
+  </div>
+
+  <div class="grid grid-cols-7 gap-1 text-center text-2xs font-medium text-slate-400 mb-1">
+    <div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div><div>Dom</div>
+  </div>
+
+  <div class="grid grid-cols-7 gap-1">
+    {% for semana in semanas %}
+      {% for cel in semana %}
+        {% if cel.dia %}
+          {% if cel.evento %}
+          <button type="button"
+                  hx-get="{% url 'web_cobrancas:index' %}?data={{ cel.dia|date:'Y-m-d' }}"
+                  hx-target="#lista-data" hx-swap="innerHTML"
+                  class="rounded-lg p-1 text-center transition hover:ring-2 hover:ring-blue-400
+                         {% if cel.evento.atrasado %}bg-red-100 text-red-700{% else %}bg-blue-50 text-blue-700{% endif %}
+                         {% if cel.hoje %}ring-2 ring-blue-500{% endif %}">
+            <span class="block text-xs font-semibold">{{ cel.dia.day }}</span>
+            <span class="block text-2xs leading-tight">{{ cel.evento.count }}×</span>
+            <span class="block text-2xs leading-tight">{{ cel.evento.total|floatformat:0 }}</span>
+          </button>
+          {% else %}
+          <div class="rounded-lg p-1 text-center text-xs text-slate-500
+                      {% if cel.hoje %}ring-2 ring-blue-500 font-bold{% endif %}">
+            {{ cel.dia.day }}
+          </div>
+          {% endif %}
+        {% else %}
+          <div></div>
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+  </div>
+
+  <p class="text-2xs text-slate-400 mt-3 text-center">
+    Clique num dia para listar os vencimentos. <span class="text-red-500">●</span> atrasado &nbsp; <span class="text-blue-500">●</span> a vencer
+  </p>
+</div>

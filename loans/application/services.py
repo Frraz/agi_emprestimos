@@ -32,6 +32,7 @@ class EmprestimoService:
         capital: Decimal,
         taxa_mensal: Decimal,
         data_inicio: date,
+        data_vencimento: date,
         observacoes: str = '',
         usuario=None,
     ):
@@ -48,6 +49,7 @@ class EmprestimoService:
             capital_atual=capital,
             taxa_juros_mensal=taxa_mensal,
             data_inicio=data_inicio,
+            data_vencimento=data_vencimento,
             status='ativo',
             observacoes=observacoes,
             registrado_por=usuario,

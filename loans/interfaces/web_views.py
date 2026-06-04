@@ -16,19 +16,22 @@ from core.exceptions import AgiBaseException
 def emprestimo_list(request):
     tipo = request.GET.get('tipo', '')
     status_f = request.GET.get('status', '')
+    vencido = request.GET.get('vencido', '')
 
     qs = Emprestimo.objects.filter(
         deleted_at__isnull=True
-    ).select_related('cliente').order_by('-data_inicio')
+    ).select_related('cliente').prefetch_related('parcelas').order_by('-data_inicio')
     if tipo:
         qs = qs.filter(tipo=tipo)
     if status_f:
         qs = qs.filter(status=status_f)
+    if vencido:
+        qs = qs.vencidos()
 
     paginator = Paginator(qs, 20)
     page = paginator.get_page(request.GET.get('page', 1))
     return render(request, 'loans/list.html', {
-        'page': page, 'tipo': tipo, 'status_f': status_f,
+        'page': page, 'tipo': tipo, 'status_f': status_f, 'vencido': vencido,
     })
 
 
@@ -73,6 +76,7 @@ def emprestimo_criar_comum(request, cliente_pk):
                     capital=d['capital'],
                     taxa_mensal=d['taxa_mensal'],
                     data_inicio=d['data_inicio'],
+                    data_vencimento=d['data_vencimento'],
                     observacoes=d.get('observacoes', ''),
                     usuario=request.user,
                 )

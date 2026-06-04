@@ -472,13 +472,24 @@ Cobertura = R$ 2.660 ÷ R$ 10.000 = 26,6%
 
 ### 7.7 Taxa de risco da operação
 
-Métrica composta que combina inadimplência com exposição real:
+Métrica composta como **média ponderada de quatro subfatores**, cada um
+normalizado em 0–100 (0 = sem risco, 100 = risco máximo). Implementada em
+`loans/domain/calculators.py::CalculadoraRisco`.
 
 ```
-Exposição real (%) = Perda ajustada ÷ Capital emprestado × 100
-
-Taxa de risco      = (Taxa de inadimplência × 0,5) + (Exposição real × 0,5)
+Taxa de risco =
+      Cobertura da penhora      × 40%
+    + Histórico do cliente      × 30%
+    + Comprometimento do capital× 20%
+    + Tempo de exposição        × 10%
 ```
+
+| Subfator | Peso | Como é medido |
+|----------|------|---------------|
+| Cobertura da penhora | 40% | `100 − percentual_cobertura` sobre os empréstimos vencidos. Mais garantia ⇒ menos risco. |
+| Histórico do cliente | 30% | Capital exposto ponderado pela classificação (verde=0, amarelo=50, vermelho=100). |
+| Comprometimento do capital | 20% | `capital_emprestado ÷ capital_total × 100` (cap em 100). |
+| Tempo de exposição | 10% | Média dos dias de atraso dos vencidos, normalizada com teto de 180 dias. |
 
 | Faixa | Avaliação |
 |-------|-----------|
@@ -598,7 +609,7 @@ Lucro base            = Σ (capital_atual × taxa_mensal)
 Projeção otimista     = Lucro base
 Projeção realista     = Lucro base × (1 - taxa_inadimplência)
 Projeção pessimista   = Lucro base × (1 - taxa_inadimplência × 1,5)
-Taxa de risco         = (Taxa_inadimplência × 0,5) + (Exposição_real × 0,5)
+Taxa de risco         = Cobertura×40% + Histórico×30% + Comprometimento×20% + Tempo×10%
 ```
 
 ---

@@ -70,7 +70,15 @@ class CriarEmprestimoComumSerializer(serializers.Serializer):
     capital = serializers.DecimalField(max_digits=12, decimal_places=2)
     taxa_mensal = serializers.DecimalField(max_digits=8, decimal_places=6)
     data_inicio = serializers.DateField()
+    data_vencimento = serializers.DateField()
     observacoes = serializers.CharField(required=False, allow_blank=True, default='')
+
+    def validate(self, attrs):
+        if attrs['data_vencimento'] < attrs['data_inicio']:
+            raise serializers.ValidationError(
+                {'data_vencimento': 'Não pode ser anterior à data de início.'}
+            )
+        return attrs
 
 
 class CriarEmprestimoParceladoSerializer(serializers.Serializer):

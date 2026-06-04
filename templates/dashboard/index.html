@@ -70,19 +70,20 @@
     <div class="kpi-value {% if metricas.taxa_risco_operacao > 20 %}text-red-600{% elif metricas.taxa_risco_operacao > 10 %}text-amber-600{% else %}text-emerald-600{% endif %}">
       {{ metricas.taxa_risco_operacao|floatformat:1 }}%
     </div>
-    <div class="kpi-sub">
-      {% if metricas.taxa_risco_operacao > 20 %}Alto risco
-      {% elif metricas.taxa_risco_operacao > 10 %}Atenção
-      {% else %}Operação saudável{% endif %}
+    <div class="kpi-sub" title="Cobertura 40% · Histórico 30% · Comprometimento 20% · Tempo 10%">
+      Penh {{ metricas.risco_composicao.cobertura|floatformat:0 }} ·
+      Hist {{ metricas.risco_composicao.historico|floatformat:0 }} ·
+      Cap {{ metricas.risco_composicao.comprometimento|floatformat:0 }} ·
+      Tmp {{ metricas.risco_composicao.tempo|floatformat:0 }}
     </div>
   </div>
 
   <div class="kpi-card">
-    <div class="kpi-label">Parcelas Atrasadas</div>
-    <div class="kpi-value {% if metricas.parcelas_atrasadas_qtd > 0 %}text-red-600{% else %}text-emerald-600{% endif %}">
-      R$ {{ metricas.parcelas_atrasadas_valor|floatformat:2 }}
+    <div class="kpi-label">Valor em Atraso</div>
+    <div class="kpi-value {% if metricas.qtd_em_atraso > 0 %}text-red-600{% else %}text-emerald-600{% endif %}">
+      R$ {{ metricas.valor_em_atraso|floatformat:2 }}
     </div>
-    <div class="kpi-sub">{{ metricas.parcelas_atrasadas_qtd }} parcela{{ metricas.parcelas_atrasadas_qtd|pluralize }} em atraso</div>
+    <div class="kpi-sub">{{ metricas.qtd_em_atraso }} empréstimo{{ metricas.qtd_em_atraso|pluralize }} em atraso</div>
   </div>
 
 </div>

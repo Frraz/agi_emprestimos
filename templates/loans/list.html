@@ -33,6 +33,11 @@
         <option value="quitado"      {% if status_f == 'quitado' %}selected{% endif %}>Quitado</option>
         <option value="cancelado"    {% if status_f == 'cancelado' %}selected{% endif %}>Cancelado</option>
       </select>
+      <select name="vencido" onchange="this.form.submit()"
+              class="input py-2 w-full sm:w-44">
+        <option value="" {% if not vencido %}selected{% endif %}>Atraso: todos</option>
+        <option value="1" {% if vencido %}selected{% endif %}>Somente vencidos</option>
+      </select>
     </form>
   </div>
 
@@ -58,6 +63,9 @@
         <span class="badge {% if emp.status == 'ativo' %}badge-green{% elif emp.status == 'inadimplente' %}badge-red{% elif emp.status == 'quitado' %}badge-slate{% else %}badge-yellow{% endif %}">
           {{ emp.get_status_display }}
         </span>
+        {% if emp.esta_vencido %}
+        <span class="badge badge-red text-2xs block mt-1">⚠ {{ emp.dias_atraso }}d em atraso</span>
+        {% endif %}
       </div>
     </a>
     {% empty %}
@@ -120,6 +128,9 @@
             <span class="badge {% if emp.status == 'ativo' %}badge-green{% elif emp.status == 'inadimplente' %}badge-red{% elif emp.status == 'quitado' %}badge-slate{% else %}badge-yellow{% endif %}">
               {{ emp.get_status_display }}
             </span>
+            {% if emp.esta_vencido %}
+            <span class="badge badge-red text-2xs block mt-1 whitespace-nowrap">⚠ {{ emp.dias_atraso }}d · R$ {{ emp.valor_em_atraso|floatformat:2 }}</span>
+            {% endif %}
           </td>
           <td>
             <a href="{% url 'web_loans:detail' pk=emp.id %}" class="btn btn-primary btn-sm">Ver →</a>

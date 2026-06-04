@@ -52,6 +52,7 @@ O **Agi Empréstimos** é um sistema completo de administração de crédito des
 - Perfil psicológico e observações livres
 - Origem do cliente (indicação, redes sociais, boato, etc.)
 - Classificação automática de risco: 🟢 Bom Pagador / 🟡 Regular / 🔴 Mau Pagador
+- Prioridade de cobrança (Essencial / Preferencial) definida pelo operador
 
 ### Empréstimos
 | Tipo | Descrição |
@@ -72,14 +73,23 @@ O **Agi Empréstimos** é um sistema completo de administração de crédito des
 - Cálculo de exposição real e perda ajustada por garantia
 - Upload de documentos (fotos, contratos, notas)
 
+### Cobranças
+- Aba dedicada ao acompanhamento de vencimentos e atrasos
+- Calendário mensal clicável (total a receber em cada dia)
+- Listas agrupadas: atrasados, hoje, amanhã, esta semana e filtro por data específica
+- Total em atraso por cliente, ordenado por prioridade (Essencial primeiro)
+- Empréstimo comum mostra juros do mês **e** total de quitação
+- Detecção de atraso por data — não depende do cron diário ter rodado
+
 ### Dashboard
 - Capital total, emprestado e disponível em caixa
 - Taxa de inadimplência com barra de progresso visual
-- Taxa de risco da operação (composta)
+- Taxa de risco da operação (composta e ponderada: cobertura da penhora 40% · histórico 30% · comprometimento do capital 20% · tempo de exposição 10%)
 - Custo da inadimplência ajustado por penhoras
 - Projeção de lucro em 3 cenários (otimista, realista, pessimista)
 - Gráfico de capital por modalidade
 - Lista de empréstimos recentes
+- Valor em atraso (empréstimos comuns e parcelados)
 
 ### Operacional
 - Comando de atualização automática de inadimplência (cron)
@@ -187,6 +197,10 @@ agi_emprestimos/
 │   ├── application/metrics.py # Todos os cálculos do dashboard
 │   └── interfaces/views.py
 │
+├── cobrancas/                 # Cobranças (leitura/agregação — sem models)
+│   ├── application/services.py # Baldes de vencimento e totais por cliente
+│   └── interfaces/            # Views Web + URLs (calendário + listas HTMX)
+│
 ├── loans/                     # Empréstimos — núcleo do sistema
 │   ├── domain/
 │   │   ├── calculators.py     # ★ Toda a lógica financeira
@@ -204,6 +218,7 @@ agi_emprestimos/
 │   ├── dashboard/
 │   ├── customers/
 │   ├── loans/
+│   ├── cobrancas/
 │   ├── payments/
 │   └── collaterals/
 │

@@ -41,9 +41,12 @@
         <div class="flex-1 min-w-0">
           <p class="text-base font-bold text-slate-900 leading-tight">{{ cliente.nome }}</p>
           {% if cliente.profissao %}<p class="text-xs text-slate-400 mt-0.5">{{ cliente.profissao }}</p>{% endif %}
-          <div class="mt-2">
+          <div class="mt-2 flex flex-wrap gap-1.5">
             <span class="badge {% if cliente.classificacao == 'verde' %}badge-green{% elif cliente.classificacao == 'amarelo' %}badge-yellow{% else %}badge-red{% endif %}">
               {% if cliente.classificacao == 'verde' %}● Bom Pagador{% elif cliente.classificacao == 'amarelo' %}● Regular{% else %}● Mau Pagador{% endif %}
+            </span>
+            <span class="badge {% if cliente.prioridade_cobranca == 'essencial' %}badge-red{% else %}badge-slate{% endif %}">
+              {{ cliente.get_prioridade_cobranca_display }}
             </span>
           </div>
         </div>

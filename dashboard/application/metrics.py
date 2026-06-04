@@ -1,17 +1,16 @@
 from decimal import Decimal
-from django.db.models import Sum, Avg, Count, Q
+from django.db.models import Sum, Avg, Count
 
 
 def calcular_metricas_dashboard() -> dict:
-    from loans.infrastructure.models import Emprestimo, ParcelaEmprestimo
+    from loans.infrastructure.models import Emprestimo
     from core.models_config import CapitalOperacional
 
     capital_op = CapitalOperacional.get_instance()
 
-    ativos = Emprestimo.objects.filter(
-        status__in=['ativo', 'inadimplente'],
-        deleted_at__isnull=True,
-    )
+    ativos = Emprestimo.objects.ativos()
+    # Atraso por DATA (independe do cron diário já ter rodado).
+    vencidos = Emprestimo.objects.vencidos()
 
     # ── Capital ────────────────────────────────────────────────────────────
     capital_emprestado = ativos.aggregate(
@@ -25,9 +24,9 @@ def calcular_metricas_dashboard() -> dict:
         for tipo in ['comum', 'parcelado', 'diaria']
     }
 
-    # ── Inadimplência ──────────────────────────────────────────────────────
+    # ── Inadimplência (baseada em data) ────────────────────────────────────
     total = ativos.count()
-    inadimplentes = ativos.filter(status='inadimplente').count()
+    inadimplentes = vencidos.count()
     taxa_inadimplencia = (
         Decimal(inadimplentes) / Decimal(total) * 100
         if total > 0 else Decimal('0')
@@ -38,26 +37,22 @@ def calcular_metricas_dashboard() -> dict:
         ativos.aggregate(media=Avg('taxa_juros_mensal'))['media'] or Decimal('0')
     ) * 100
 
-    # ── Parcelas atrasadas ─────────────────────────────────────────────────
-    parcelas_info = ParcelaEmprestimo.objects.filter(
-        status='atrasado',
-        emprestimo__deleted_at__isnull=True,
-    ).aggregate(
-        total_valor=Sum('valor_parcela'),
-        quantidade=Count('id'),
-    )
+    # ── Valor em atraso (comum + parcelado) ────────────────────────────────
+    atraso = _calcular_valor_em_atraso(vencidos)
 
     # ── Custo da inadimplência ajustado por penhora ────────────────────────
-    custo_inadimplencia = _calcular_custo_inadimplencia_ajustado()
+    custo_inadimplencia = _calcular_custo_inadimplencia_ajustado(vencidos)
 
     # ── Projeções ──────────────────────────────────────────────────────────
     projecoes = _calcular_projecoes(ativos, taxa_inadimplencia)
 
-    # ── Taxa de risco ──────────────────────────────────────────────────────
+    # ── Taxa de risco da operação (composta e ponderada) ───────────────────
     taxa_risco = _calcular_taxa_risco(
-        capital_emprestado,
-        custo_inadimplencia['perda_ajustada_total'],
-        taxa_inadimplencia,
+        ativos=ativos,
+        vencidos=vencidos,
+        capital_emprestado=capital_emprestado,
+        capital_total=capital_op.total_capital,
+        custo_inadimplencia=custo_inadimplencia,
     )
 
     return {
@@ -69,42 +64,50 @@ def calcular_metricas_dashboard() -> dict:
         'inadimplentes': inadimplentes,
         'taxa_inadimplencia': round(taxa_inadimplencia, 2),
         'taxa_juros_media_mensal': round(taxa_media, 2),
-        'parcelas_atrasadas_valor': parcelas_info['total_valor'] or Decimal('0'),
-        'parcelas_atrasadas_qtd': parcelas_info['quantidade'] or 0,
+        'valor_em_atraso': atraso['valor'],
+        'qtd_em_atraso': atraso['quantidade'],
+        # Aliases retrocompatíveis (templates antigos)
+        'parcelas_atrasadas_valor': atraso['valor'],
+        'parcelas_atrasadas_qtd': atraso['quantidade'],
         'projecoes_lucro': projecoes,
         'custo_inadimplencia': custo_inadimplencia,
-        'taxa_risco_operacao': taxa_risco,
+        'taxa_risco_operacao': taxa_risco['total'],
+        'risco_composicao': taxa_risco,
     }
 
 
-def _calcular_custo_inadimplencia_ajustado() -> dict:
+def _calcular_valor_em_atraso(vencidos) -> dict:
     """
-    Para cada empréstimo inadimplente:
+    Soma o valor em atraso dos empréstimos vencidos.
+    Comum: saldo devedor atual. Parcelado: soma das parcelas em aberto vencidas.
+    """
+    valor = Decimal('0')
+    quantidade = 0
+    for emp in vencidos.prefetch_related('parcelas'):
+        valor += emp.valor_em_atraso
+        quantidade += 1
+    return {'valor': valor, 'quantidade': quantidade}
+
+
+def _calcular_custo_inadimplencia_ajustado(vencidos) -> dict:
+    """
+    Para cada empréstimo vencido:
       exposicao_real = saldo_devedor - (valor_garantias × percentual_recuperacao)
-    
+
     Retorna totais consolidados.
     """
-    from loans.infrastructure.models import Emprestimo
-    from django.db.models import Sum
-
-    inadimplentes = Emprestimo.objects.filter(
-        status='inadimplente',
-        deleted_at__isnull=True,
-    ).prefetch_related('garantias')
-
     saldo_total = Decimal('0')
     garantia_total = Decimal('0')
     recuperacao_estimada = Decimal('0')
     perda_ajustada_total = Decimal('0')
 
-    for emp in inadimplentes:
+    for emp in vencidos.prefetch_related('garantias'):
         saldo = emp.capital_atual
-        valor_garantias = sum(
-            g.valor_estimado for g in emp.garantias.filter(deleted_at__isnull=True)
-        )
+        garantias = list(emp.garantias.filter(deleted_at__isnull=True))
+        valor_garantias = sum((g.valor_estimado for g in garantias), Decimal('0'))
         recuperacao = sum(
-            g.valor_estimado * g.percentual_recuperacao
-            for g in emp.garantias.filter(deleted_at__isnull=True)
+            (g.valor_estimado * g.percentual_recuperacao for g in garantias),
+            Decimal('0'),
         )
         perda = max(Decimal('0'), saldo - recuperacao)
 
@@ -144,20 +147,53 @@ def _calcular_projecoes(emprestimos_qs, taxa_inadimplencia: Decimal) -> dict:
 
 
 def _calcular_taxa_risco(
+    ativos,
+    vencidos,
     capital_emprestado: Decimal,
-    perda_ajustada: Decimal,
-    taxa_inadimplencia: Decimal,
-) -> Decimal:
+    capital_total: Decimal,
+    custo_inadimplencia: dict,
+) -> dict:
     """
-    Taxa de risco composta:
-    - 50% peso: inadimplência
-    - 50% peso: exposição real (perda / capital)
+    Reúne os insumos via ORM e delega o cálculo à CalculadoraRisco (domínio).
+    Composição: cobertura 40% · histórico 30% · comprometimento 20% · tempo 10%.
     """
-    from core.utils import arredondar_financeiro
+    from loans.domain.calculators import CalculadoraRisco
 
-    exposicao = (
-        perda_ajustada / capital_emprestado * 100
-        if capital_emprestado > 0 else Decimal('0')
+    # Cobertura da penhora (sobre os vencidos)
+    fator_cobertura = CalculadoraRisco.fator_cobertura_penhora(
+        custo_inadimplencia['saldo_devedor_inadimplentes'],
+        custo_inadimplencia['valor_garantias_total'],
     )
-    taxa = (taxa_inadimplencia * Decimal('0.5')) + (exposicao * Decimal('0.5'))
-    return arredondar_financeiro(taxa)
+
+    # Histórico do cliente — capital exposto ponderado pela classificação
+    distribuicao = {'verde': Decimal('0'), 'amarelo': Decimal('0'), 'vermelho': Decimal('0')}
+    por_classe = ativos.values('cliente__classificacao').annotate(
+        capital=Sum('capital_atual')
+    )
+    for row in por_classe:
+        classe = row['cliente__classificacao'] or 'verde'
+        distribuicao[classe] = distribuicao.get(classe, Decimal('0')) + (
+            row['capital'] or Decimal('0')
+        )
+    fator_historico = CalculadoraRisco.fator_historico_cliente(distribuicao)
+
+    # Comprometimento do capital
+    fator_comprometimento = CalculadoraRisco.fator_comprometimento_capital(
+        capital_emprestado, capital_total
+    )
+
+    # Tempo de exposição — dias de atraso dos vencidos
+    dias_lista = [emp.dias_atraso for emp in vencidos.prefetch_related('parcelas')]
+    fator_tempo = CalculadoraRisco.fator_tempo_exposicao(dias_lista)
+
+    total = CalculadoraRisco.calcular_taxa_risco(
+        fator_cobertura, fator_historico, fator_comprometimento, fator_tempo
+    )
+
+    return {
+        'total': total,
+        'cobertura': fator_cobertura,
+        'historico': fator_historico,
+        'comprometimento': fator_comprometimento,
+        'tempo': fator_tempo,
+    }

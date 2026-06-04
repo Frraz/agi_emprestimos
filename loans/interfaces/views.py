@@ -53,6 +53,7 @@ class EmprestimoViewSet(viewsets.ReadOnlyModelViewSet):
                 capital=d['capital'],
                 taxa_mensal=d['taxa_mensal'],
                 data_inicio=d['data_inicio'],
+                data_vencimento=d['data_vencimento'],
                 observacoes=d.get('observacoes', ''),
                 usuario=request.user,
             )

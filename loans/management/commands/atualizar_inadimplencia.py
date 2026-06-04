@@ -91,21 +91,11 @@ class Command(BaseCommand):
     def _marcar_emprestimos_inadimplentes(self, data_ref: date, dry_run: bool) -> int:
         from loans.infrastructure.models import Emprestimo
 
-        # Empréstimos COMUNS com data de vencimento ultrapassada
-        qs_comuns = Emprestimo.objects.filter(
-            tipo='comum',
-            status='ativo',
-            data_vencimento__lt=data_ref,
-            deleted_at__isnull=True,
-        )
+        # Predicado único de atraso (mesmo usado por dashboard e cobranças).
+        vencidos_ativos = Emprestimo.objects.vencidos(data_ref).filter(status='ativo')
 
-        # Empréstimos PARCELADOS com pelo menos 1 parcela atrasada
-        qs_parcelados = Emprestimo.objects.filter(
-            tipo='parcelado',
-            status='ativo',
-            deleted_at__isnull=True,
-            parcelas__status='atrasado',
-        ).distinct()
+        qs_comuns = vencidos_ativos.filter(tipo='comum')
+        qs_parcelados = vencidos_ativos.filter(tipo='parcelado')
 
         total = qs_comuns.count() + qs_parcelados.count()
 

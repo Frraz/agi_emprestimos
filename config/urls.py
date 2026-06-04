@@ -19,6 +19,7 @@ urlpatterns = [
     path('', include(('dashboard.interfaces.urls', 'dashboard'))),
     path('clientes/', include('customers.interfaces.web_urls')),
     path('emprestimos/', include('loans.interfaces.web_urls')),
+    path('cobrancas/', include('cobrancas.interfaces.web_urls')),
     path('pagamentos/', include('payments.interfaces.web_urls')),
 
     path('garantias/', include('collaterals.interfaces.web_urls')),

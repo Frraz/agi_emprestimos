@@ -72,11 +72,31 @@
     .data-table td { padding:12px 16px; color:#334155; vertical-align:middle; }
 
     /* ── Nav sidebar ───────────────────────────────────────────────────── */
-    .nav-link { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; font-size:13px; font-weight:500; color:#94a3b8; transition:all 120ms; cursor:pointer; text-decoration:none; }
-    .nav-link:hover { background:rgba(255,255,255,.08); color:white; }
-    .nav-link.active { background:rgba(37,99,235,.85); color:white; }
-    .nav-icon { width:16px; height:16px; flex-shrink:0; opacity:.8; }
-    .nav-link.active .nav-icon { opacity:1; }
+    .nav-link { position:relative; display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; font-size:13px; font-weight:500; color:#94a3b8; transition:background 150ms, color 150ms; cursor:pointer; text-decoration:none; }
+    .nav-link:hover { background:rgba(255,255,255,.08); color:#fff; }
+    .nav-link.active { background:linear-gradient(90deg,#2563eb,#1d4ed8); color:#fff; box-shadow:0 4px 12px rgba(37,99,235,.35); }
+    .nav-link.active::before { content:''; position:absolute; left:-12px; top:50%; transform:translateY(-50%); width:3px; height:20px; border-radius:0 3px 3px 0; background:#93c5fd; }
+    .nav-icon { width:16px; height:16px; flex-shrink:0; opacity:.85; }
+    .nav-link:hover .nav-icon, .nav-link.active .nav-icon { opacity:1; }
+
+    /* ── Foco visível (teclado) ─────────────────────────────────────────── */
+    :focus-visible { outline:2px solid #3b82f6; outline-offset:2px; border-radius:6px; }
+    .nav-link:focus-visible { outline-offset:-2px; }
+
+    /* ── Skip link ──────────────────────────────────────────────────────── */
+    .skip-link { position:fixed; top:8px; left:8px; z-index:300; padding:10px 16px; background:#2563eb; color:#fff; font-size:13px; font-weight:600; border-radius:8px; transform:translateY(-150%); transition:transform 150ms; box-shadow:0 8px 24px rgb(0 0 0/.2); }
+    .skip-link:focus { transform:translateY(0); }
+
+    /* ── Touch targets maiores no mobile ────────────────────────────────── */
+    @media (max-width:1023px) {
+      .nav-link { padding:12px; font-size:14px; }
+      .nav-icon { width:18px; height:18px; }
+    }
+
+    /* ── Reduced motion ─────────────────────────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+    }
 
     /* ── Empty state ───────────────────────────────────────────────────── */
     .empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:56px 32px; text-align:center; }
@@ -115,13 +135,14 @@
 <body class="bg-slate-50" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 {% load static %}
 
-<div id="overlay" onclick="closeSidebar()"></div>
-<div id="toast-container"></div>
+<a href="#main-content" class="skip-link">Pular para o conteúdo</a>
+<div id="overlay" onclick="closeSidebar()" aria-hidden="true"></div>
+<div id="toast-container" aria-live="polite" aria-atomic="false"></div>
 
 <div class="flex h-screen overflow-hidden">
 
   {# ── SIDEBAR ────────────────────────────────────────────────────────── #}
-  <aside id="sidebar"
+  <aside id="sidebar" aria-label="Navegação principal"
          class="w-60 flex-shrink-0 bg-slate-900 flex flex-col select-none">
 
     {# Logo #}
@@ -135,9 +156,9 @@
           <p class="text-slate-500 text-xs leading-none mt-0.5">Empréstimos</p>
         </div>
       </div>
-      <button onclick="closeSidebar()"
-              class="lg:hidden flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-white/10 transition-colors ml-2">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <button onclick="closeSidebar()" type="button" aria-label="Fechar menu"
+              class="lg:hidden flex-shrink-0 w-10 h-10 -mr-1.5 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors ml-2">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
         </svg>
       </button>
@@ -145,13 +166,14 @@
 
     {# Nav #}
     {% with request.resolver_match.namespace as ns %}
-    <nav class="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
+    <nav class="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto" aria-label="Menu">
 
       <p class="text-xs font-semibold text-slate-600 uppercase tracking-widest px-3 mb-2 mt-1">Menu</p>
 
       {% url 'dashboard:dashboard-index' as url_dash %}
       <a href="{{ url_dash }}" onclick="closeSidebar()"
-         class="nav-link {% if ns == 'dashboard' %}active{% endif %}">
+         class="nav-link {% if ns == 'dashboard' %}active{% endif %}"
+         {% if ns == 'dashboard' %}aria-current="page"{% endif %}>
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10-3a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1v-7z"/>
         </svg>
@@ -159,7 +181,8 @@
       </a>
 
       <a href="{% url 'web_customers:list' %}" onclick="closeSidebar()"
-         class="nav-link {% if ns == 'web_customers' %}active{% endif %}">
+         class="nav-link {% if ns == 'web_customers' %}active{% endif %}"
+         {% if ns == 'web_customers' %}aria-current="page"{% endif %}>
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
         </svg>
@@ -167,15 +190,26 @@
       </a>
 
       <a href="{% url 'web_loans:list' %}" onclick="closeSidebar()"
-         class="nav-link {% if ns == 'web_loans' %}active{% endif %}">
+         class="nav-link {% if ns == 'web_loans' %}active{% endif %}"
+         {% if ns == 'web_loans' %}aria-current="page"{% endif %}>
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
         </svg>
         Empréstimos
       </a>
 
+      <a href="{% url 'web_cobrancas:index' %}" onclick="closeSidebar()"
+         class="nav-link {% if ns == 'web_cobrancas' %}active{% endif %}"
+         {% if ns == 'web_cobrancas' %}aria-current="page"{% endif %}>
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        Cobranças
+      </a>
+
       <a href="{% url 'web_payments:list' %}" onclick="closeSidebar()"
-         class="nav-link {% if ns == 'web_payments' %}active{% endif %}">
+         class="nav-link {% if ns == 'web_payments' %}active{% endif %}"
+         {% if ns == 'web_payments' %}aria-current="page"{% endif %}>
         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
           <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
         </svg>
@@ -195,8 +229,8 @@
           <p class="text-slate-300 text-xs font-semibold truncate">{{ request.user.username }}</p>
           <p class="text-slate-600 text-xs truncate">Administrador</p>
         </div>
-        <a href="{% url 'logout' %}" title="Sair"
-           class="text-slate-600 hover:text-red-400 transition-colors flex-shrink-0 p-1 rounded">
+        <a href="{% url 'logout' %}" title="Sair" aria-label="Sair da conta"
+           class="text-slate-500 hover:text-red-400 hover:bg-white/[.06] transition-colors flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg">
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
             <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
           </svg>
@@ -214,8 +248,9 @@
       <div class="flex items-center gap-3 min-w-0">
 
         {# Hamburger — só mobile #}
-        <button onclick="openSidebar()"
-                class="lg:hidden flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors">
+        <button id="menu-toggle" onclick="openSidebar()" type="button"
+                aria-label="Abrir menu" aria-controls="sidebar" aria-expanded="false"
+                class="lg:hidden flex-shrink-0 w-10 h-10 -ml-1.5 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors">
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
           </svg>
@@ -260,16 +295,44 @@
 
 <script>
 /* ── Sidebar ─────────────────────────────────────────────────────────── */
+const sidebarEl = document.getElementById('sidebar');
+const overlayEl = document.getElementById('overlay');
+const menuToggle = document.getElementById('menu-toggle');
+
 function openSidebar() {
-  document.getElementById('sidebar').classList.add('open');
-  document.getElementById('overlay').classList.add('show');
+  sidebarEl.classList.add('open');
+  overlayEl.classList.add('show');
   document.body.style.overflow = 'hidden';
+  if (menuToggle) menuToggle.setAttribute('aria-expanded', 'true');
+  // Foco no primeiro elemento focável da sidebar (só no modo mobile/off-canvas)
+  if (window.matchMedia('(max-width:1023px)').matches) {
+    const first = sidebarEl.querySelector('a, button');
+    if (first) first.focus();
+    document.addEventListener('keydown', trapFocus);
+  }
 }
 function closeSidebar() {
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('overlay').classList.remove('show');
+  if (!sidebarEl.classList.contains('open')) return;
+  sidebarEl.classList.remove('open');
+  overlayEl.classList.remove('show');
   document.body.style.overflow = '';
+  document.removeEventListener('keydown', trapFocus);
+  if (menuToggle) {
+    menuToggle.setAttribute('aria-expanded', 'false');
+    if (window.matchMedia('(max-width:1023px)').matches) menuToggle.focus();
+  }
 }
+
+/* Mantém o foco do teclado dentro da sidebar enquanto ela está aberta no mobile */
+function trapFocus(e) {
+  if (e.key !== 'Tab') return;
+  const items = sidebarEl.querySelectorAll('a[href], button:not([disabled])');
+  if (!items.length) return;
+  const first = items[0], last = items[items.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+}
+
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSidebar(); });
 
 /* ── Toast ───────────────────────────────────────────────────────────── */

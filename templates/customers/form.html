@@ -183,6 +183,8 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {% include "customers/_field_new.html" with field=form.origem label="Como chegou até você?" %}
 
+          {% include "customers/_field_new.html" with field=form.prioridade_cobranca label="Prioridade de Cobrança" %}
+
           <div>
             <label class="block text-xs font-medium text-slate-600 mb-1.5">Quem indicou?</label>
             <input type="text" id="indicador-search"

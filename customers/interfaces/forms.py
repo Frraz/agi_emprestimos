@@ -17,7 +17,7 @@ class ClienteForm(forms.ModelForm):
             'instagram', 'facebook',
             'cep', 'logradouro', 'numero', 'complemento',
             'bairro', 'cidade', 'estado',
-            'origem', 'perfil_psicologico', 'observacoes',
+            'origem', 'prioridade_cobranca', 'perfil_psicologico', 'observacoes',
         ]
         widgets = {
             'nome': forms.TextInput(attrs={'class': _I, 'placeholder': 'Nome completo'}),
@@ -50,6 +50,7 @@ class ClienteForm(forms.ModelForm):
             'cidade': forms.TextInput(attrs={'class': _I}),
             'estado': forms.TextInput(attrs={'class': _I, 'maxlength': 2, 'placeholder': 'UF'}),
             'origem': forms.Select(attrs={'class': _S}),
+            'prioridade_cobranca': forms.Select(attrs={'class': _S}),
             'perfil_psicologico': forms.Textarea(attrs={'class': _T, 'rows': 3}),
             'observacoes': forms.Textarea(attrs={'class': _T, 'rows': 3}),
         }

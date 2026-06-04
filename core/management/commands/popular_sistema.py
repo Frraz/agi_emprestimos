@@ -354,6 +354,7 @@ class Command(BaseCommand):
                             capital=capital,
                             taxa_mensal=taxa,
                             data_inicio=data_inicio,
+                            data_vencimento=data_inicio + relativedelta(months=1),
                             observacoes='',
                             usuario=usuario,
                         )

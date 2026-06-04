@@ -1,0 +1,57 @@
+{% if titulo %}
+<h3 class="text-sm font-semibold text-slate-700 mb-2">{{ titulo }}</h3>
+{% endif %}
+{% if itens %}
+<div class="overflow-x-auto">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Vencimento</th>
+        <th>Cliente</th>
+        <th>Empréstimo</th>
+        <th class="text-right">A receber</th>
+        <th>Situação</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in itens %}
+      <tr class="{% if it.dias_atraso > 0 %}bg-red-50{% endif %}">
+        <td class="whitespace-nowrap">{{ it.data_vencimento|date:"d/m/Y" }}</td>
+        <td>
+          <a href="{% url 'web_customers:detail' pk=it.cliente.id %}"
+             class="font-medium text-blue-600 hover:underline">{{ it.cliente.nome }}</a>
+          <span class="badge {% if it.cliente.prioridade_cobranca == 'essencial' %}badge-red{% else %}badge-slate{% endif %} text-2xs ml-1">
+            {{ it.cliente.get_prioridade_cobranca_display }}
+          </span>
+        </td>
+        <td class="text-xs text-slate-500">
+          {% if it.tipo == 'comum' %}Comum{% else %}Parcela {{ it.numero }}{% endif %}
+        </td>
+        <td class="text-right font-bold text-slate-900">
+          R$ {{ it.valor|floatformat:2 }}
+          {% if it.tipo == 'comum' %}
+          <span class="block text-2xs font-normal text-slate-400">juros do mês R$ {{ it.juros_mes|floatformat:2 }}</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if it.dias_atraso > 0 %}
+          <span class="badge badge-red">{{ it.dias_atraso }}d em atraso</span>
+          {% else %}
+          <span class="badge badge-green">em dia</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{% url 'web_loans:detail' pk=it.emprestimo.id %}"
+             class="btn btn-primary btn-sm">Ver →</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state py-6">
+  <p class="text-sm text-slate-500">Nenhum vencimento neste grupo.</p>
+</div>
+{% endif %}

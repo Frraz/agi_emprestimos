@@ -14,6 +14,26 @@
 {% endblock %}
 
 {% block content %}
+
+{% if emp.esta_vencido %}
+<div class="mb-5 rounded-xl border border-red-200 bg-red-50 px-5 py-4 flex flex-wrap items-center gap-x-6 gap-y-1">
+  <div>
+    <p class="text-xs font-semibold text-red-700 uppercase tracking-wide">⚠ Empréstimo em atraso</p>
+    <p class="text-sm text-red-600">{{ emp.dias_atraso }} dia{{ emp.dias_atraso|pluralize }} de atraso desde {{ emp.data_vencimento|date:"d/m/Y" }}</p>
+  </div>
+  <div class="ml-auto text-right">
+    <p class="text-2xs text-red-500 uppercase">Valor em atraso</p>
+    <p class="text-lg font-bold text-red-700">R$ {{ emp.valor_em_atraso|floatformat:2 }}</p>
+  </div>
+  {% if emp.tipo == 'comum' %}
+  <div class="text-right">
+    <p class="text-2xs text-red-500 uppercase">Total p/ quitar</p>
+    <p class="text-sm font-semibold text-red-700">R$ {{ emp.total_quitacao|floatformat:2 }}</p>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
 <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
 
   {# Card principal #}

@@ -12,6 +12,8 @@ from loans.domain.calculators import (
     CalculadoraEmprestimoParceladoFixo,
     CalculadoraEmprestimoParceladoSAC,
     CalculadoraInadimplencia,
+    CalculadoraAtraso,
+    CalculadoraRisco,
 )
 
 
@@ -204,3 +206,100 @@ class TestClassificacaoCliente:
         # Perda = 1000 - 350 = 650
         assert r['recuperacao_estimada'] == Decimal('350.00')
         assert r['perda_ajustada'] == Decimal('650.00')
+
+class TestCalculadoraAtraso:
+
+    def test_dias_atraso_vencido(self):
+        assert CalculadoraAtraso.dias_atraso(
+            date(2026, 1, 1), date(2026, 1, 11)
+        ) == 10
+
+    def test_dias_atraso_no_vencimento_eh_zero(self):
+        # Vencer hoje ainda não é atraso
+        assert CalculadoraAtraso.dias_atraso(
+            date(2026, 1, 1), date(2026, 1, 1)
+        ) == 0
+
+    def test_dias_atraso_futuro_eh_zero(self):
+        assert CalculadoraAtraso.dias_atraso(
+            date(2026, 2, 1), date(2026, 1, 1)
+        ) == 0
+
+    def test_dias_atraso_sem_data_eh_zero(self):
+        assert CalculadoraAtraso.dias_atraso(None, date(2026, 1, 1)) == 0
+
+    def test_comum_vencido(self):
+        assert CalculadoraAtraso.esta_vencido_comum(
+            'ativo', date(2026, 1, 1), date(2026, 1, 2)
+        ) is True
+
+    def test_comum_sem_vencimento_nao_esta_vencido(self):
+        assert CalculadoraAtraso.esta_vencido_comum(
+            'ativo', None, date(2026, 1, 2)
+        ) is False
+
+    def test_comum_quitado_nao_esta_vencido(self):
+        assert CalculadoraAtraso.esta_vencido_comum(
+            'quitado', date(2026, 1, 1), date(2026, 1, 2)
+        ) is False
+
+
+class TestCalculadoraRisco:
+
+    def test_cobertura_total_zera_o_fator(self):
+        # Garantia cobre tudo → cobertura 100% → fator de risco 0
+        f = CalculadoraRisco.fator_cobertura_penhora(
+            Decimal('1000'), Decimal('2000'), Decimal('0.70')
+        )
+        assert f == Decimal('0.00')
+
+    def test_cobertura_zero_fator_maximo(self):
+        # Sem garantia → cobertura 0% → fator 100
+        f = CalculadoraRisco.fator_cobertura_penhora(
+            Decimal('1000'), Decimal('0'), Decimal('0.70')
+        )
+        assert f == Decimal('100.00')
+
+    def test_historico_ponderado_por_capital(self):
+        dist = {'verde': Decimal('0'), 'amarelo': Decimal('0'), 'vermelho': Decimal('100')}
+        assert CalculadoraRisco.fator_historico_cliente(dist) == Decimal('100.00')
+        dist2 = {'verde': Decimal('100'), 'amarelo': Decimal('0'), 'vermelho': Decimal('100')}
+        # média ponderada: (0*100 + 100*100) / 200 = 50
+        assert CalculadoraRisco.fator_historico_cliente(dist2) == Decimal('50.00')
+
+    def test_historico_sem_capital_eh_zero(self):
+        dist = {'verde': Decimal('0'), 'amarelo': Decimal('0'), 'vermelho': Decimal('0')}
+        assert CalculadoraRisco.fator_historico_cliente(dist) == Decimal('0')
+
+    def test_comprometimento_capital(self):
+        assert CalculadoraRisco.fator_comprometimento_capital(
+            Decimal('5000'), Decimal('10000')
+        ) == Decimal('50.00')
+        # cap em 100 mesmo se emprestado > total
+        assert CalculadoraRisco.fator_comprometimento_capital(
+            Decimal('15000'), Decimal('10000')
+        ) == Decimal('100.00')
+
+    def test_comprometimento_sem_capital_total_eh_zero(self):
+        assert CalculadoraRisco.fator_comprometimento_capital(
+            Decimal('5000'), Decimal('0')
+        ) == Decimal('0')
+
+    def test_tempo_exposicao_normalizado(self):
+        # média 90 dias / teto 180 = 50%
+        assert CalculadoraRisco.fator_tempo_exposicao([90, 90]) == Decimal('50.00')
+        # acima do teto satura em 100
+        assert CalculadoraRisco.fator_tempo_exposicao([360]) == Decimal('100.00')
+
+    def test_tempo_exposicao_vazio_eh_zero(self):
+        assert CalculadoraRisco.fator_tempo_exposicao([]) == Decimal('0')
+
+    def test_taxa_risco_ponderada(self):
+        # 40%*100 + 30%*100 + 20%*100 + 10%*100 = 100
+        assert CalculadoraRisco.calcular_taxa_risco(
+            Decimal('100'), Decimal('100'), Decimal('100'), Decimal('100')
+        ) == Decimal('100.00')
+        # pesos: 0.4*50 + 0.3*100 + 0.2*0 + 0.1*0 = 20 + 30 = 50
+        assert CalculadoraRisco.calcular_taxa_risco(
+            Decimal('50'), Decimal('100'), Decimal('0'), Decimal('0')
+        ) == Decimal('50.00')

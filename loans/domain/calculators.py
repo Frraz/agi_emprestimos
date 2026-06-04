@@ -303,3 +303,137 @@ class CalculadoraInadimplencia:
             'perda_ajustada': perda,
             'percentual_cobertura': cobertura,
         }
+
+
+# ── Atraso (detecção baseada em data) ──────────────────────────────────────
+
+class CalculadoraAtraso:
+    """
+    Regras puras de atraso. Fonte única da definição de "vencido".
+
+    A detecção é baseada em DATA (não no status persistido), para que
+    dashboard, cobranças e listas concordem mesmo que o cron diário
+    (atualizar_inadimplencia) ainda não tenha rodado. O ORM espelha esses
+    mesmos predicados em EmprestimoQuerySet.vencidos().
+    """
+
+    STATUS_ABERTO = ('ativo', 'inadimplente')
+    STATUS_PARCELA_ABERTA = ('pendente', 'parcialmente_pago', 'atrasado')
+
+    @staticmethod
+    def dias_atraso(data_vencimento: date, ref: date) -> int:
+        """Dias corridos de atraso (0 se ainda não venceu ou venceu hoje)."""
+        if data_vencimento is None:
+            return 0
+        return max(0, (ref - data_vencimento).days)
+
+    @staticmethod
+    def esta_vencido_comum(status: str, data_vencimento: date, ref: date) -> bool:
+        """Empréstimo COMUM vencido: tem data, está em aberto e a data passou."""
+        return (
+            status in CalculadoraAtraso.STATUS_ABERTO
+            and data_vencimento is not None
+            and data_vencimento < ref
+        )
+
+
+# ── Risco da Operação (composto e ponderado) ───────────────────────────────
+
+class CalculadoraRisco:
+    """
+    Taxa de risco da operação como média ponderada de quatro subfatores,
+    cada um normalizado em 0–100 (0 = sem risco, 100 = risco máximo):
+
+      • Cobertura da penhora ...... peso 40%
+      • Histórico do cliente ...... peso 30%
+      • Comprometimento do capital  peso 20%
+      • Tempo de exposição ........ peso 10%
+
+    Todos os métodos são puros (sem Django). A camada de métricas apenas
+    reúne os insumos via ORM e chama estes cálculos.
+    """
+
+    PESO_COBERTURA = Decimal('0.40')
+    PESO_HISTORICO = Decimal('0.30')
+    PESO_COMPROMETIMENTO = Decimal('0.20')
+    PESO_TEMPO = Decimal('0.10')
+
+    # Mapa de risco por classificação do cliente
+    _RISCO_CLASSIFICACAO = {
+        'verde': Decimal('0'),
+        'amarelo': Decimal('50'),
+        'vermelho': Decimal('100'),
+    }
+
+    # Tempo (em dias) a partir do qual a exposição é considerada risco máximo
+    TETO_DIAS_EXPOSICAO = 180
+
+    @staticmethod
+    def fator_cobertura_penhora(
+        saldo_devedor: Decimal,
+        valor_garantia: Decimal,
+        percentual_recuperacao: Decimal = Decimal('0.70'),
+    ) -> Decimal:
+        """
+        Quanto MENOR a cobertura da penhora, MAIOR o risco.
+        risco = 100 − percentual_cobertura.
+        """
+        exposicao = CalculadoraInadimplencia.calcular_exposicao_ajustada(
+            saldo_devedor, valor_garantia, percentual_recuperacao
+        )
+        return _r(max(Decimal('0'), Decimal('100') - exposicao['percentual_cobertura']))
+
+    @staticmethod
+    def fator_historico_cliente(distribuicao_capital: dict) -> Decimal:
+        """
+        Risco do histórico ponderado pelo capital exposto em cada
+        classificação. distribuicao_capital: {'verde': cap, 'amarelo': cap,
+        'vermelho': cap}. Sem capital → 0.
+        """
+        total = sum(distribuicao_capital.values())
+        if total <= Decimal('0'):
+            return Decimal('0')
+        soma = Decimal('0')
+        for classe, capital in distribuicao_capital.items():
+            risco = CalculadoraRisco._RISCO_CLASSIFICACAO.get(classe, Decimal('50'))
+            soma += risco * capital
+        return _r(soma / total)
+
+    @staticmethod
+    def fator_comprometimento_capital(
+        capital_emprestado: Decimal,
+        capital_total: Decimal,
+    ) -> Decimal:
+        """Percentual do capital total que está na rua (cap em 100)."""
+        if capital_total is None or capital_total <= Decimal('0'):
+            return Decimal('0')
+        return _r(min(Decimal('100'), capital_emprestado / capital_total * 100))
+
+    @staticmethod
+    def fator_tempo_exposicao(dias_lista: list) -> Decimal:
+        """
+        Média do tempo de exposição (dias) dos empréstimos vencidos,
+        normalizada para 0–100 com teto em TETO_DIAS_EXPOSICAO dias.
+        Lista vazia → 0.
+        """
+        dias_validos = [d for d in dias_lista if d and d > 0]
+        if not dias_validos:
+            return Decimal('0')
+        media = Decimal(sum(dias_validos)) / Decimal(len(dias_validos))
+        normalizado = media / Decimal(CalculadoraRisco.TETO_DIAS_EXPOSICAO) * 100
+        return _r(min(Decimal('100'), normalizado))
+
+    @staticmethod
+    def calcular_taxa_risco(
+        cobertura: Decimal,
+        historico: Decimal,
+        comprometimento: Decimal,
+        tempo: Decimal,
+    ) -> Decimal:
+        """Média ponderada final (0–100)."""
+        return _r(
+            cobertura * CalculadoraRisco.PESO_COBERTURA
+            + historico * CalculadoraRisco.PESO_HISTORICO
+            + comprometimento * CalculadoraRisco.PESO_COMPROMETIMENTO
+            + tempo * CalculadoraRisco.PESO_TEMPO
+        )

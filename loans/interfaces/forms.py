@@ -23,6 +23,11 @@ class EmprestimoComumForm(forms.Form):
         initial=date.today,
         widget=forms.DateInput(attrs={'class': _I, 'type': 'date'}),
     )
+    data_vencimento = forms.DateField(
+        label='Data de Vencimento',
+        help_text='Data combinada para pagamento dos juros / quitação.',
+        widget=forms.DateInput(attrs={'class': _I, 'type': 'date'}),
+    )
     observacoes = forms.CharField(
         required=False, label='Observações',
         widget=forms.Textarea(attrs={'class': _T, 'rows': 2}),
@@ -33,6 +38,17 @@ class EmprestimoComumForm(forms.Form):
         if taxa <= 0 or taxa >= 100:
             raise forms.ValidationError('Taxa deve estar entre 0% e 100%.')
         return taxa / Decimal('100')
+
+    def clean(self):
+        cleaned = super().clean()
+        inicio = cleaned.get('data_inicio')
+        venc = cleaned.get('data_vencimento')
+        if inicio and venc and venc < inicio:
+            self.add_error(
+                'data_vencimento',
+                'A data de vencimento não pode ser anterior à data de início.',
+            )
+        return cleaned
 
 
 class EmprestimoParceladoForm(forms.Form):

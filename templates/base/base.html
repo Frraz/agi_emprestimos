@@ -236,10 +236,14 @@
     /* ══ Shim de dark mode para utilitários Tailwind crus nos templates ══ */
     .dark .bg-white { background-color:var(--surface) !important; }
     .dark .bg-slate-50, .dark .bg-slate-50\/60, .dark .bg-slate-100 { background-color:var(--surface-2) !important; }
+    /* superfícies neutras em estados (hover/focus/group-hover) — corrige linhas/botões clareando no escuro */
+    .dark .hover\:bg-slate-50:hover, .dark .hover\:bg-slate-100:hover, .dark .hover\:bg-white:hover,
+    .dark .focus\:bg-slate-50:focus, .dark .focus\:bg-slate-100:focus,
+    .dark .group:hover .group-hover\:bg-slate-50, .dark .group:hover .group-hover\:bg-slate-100 { background-color:var(--surface-2) !important; }
     .dark .text-slate-900, .dark .text-slate-800 { color:var(--text-strong) !important; }
     .dark .text-slate-700, .dark .text-slate-600 { color:var(--text) !important; }
-    .dark .text-slate-500, .dark .text-slate-400, .dark .text-slate-300 { color:var(--text-muted) !important; }
-    .dark .border-slate-200, .dark .border-slate-100, .dark .border-slate-50 { border-color:var(--border) !important; }
+    .dark .text-slate-500, .dark .text-slate-400, .dark .text-slate-300, .dark .text-slate-200 { color:var(--text-muted) !important; }
+    .dark .border-slate-200, .dark .border-slate-100, .dark .border-slate-50, .dark .border-slate-300 { border-color:var(--border) !important; }
     .dark .divide-slate-50 > :not([hidden]) ~ :not([hidden]),
     .dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color:var(--border-soft) !important; }
     /* superfícies coloridas suaves → tonalidades discretas no escuro */
@@ -257,6 +261,14 @@
     .dark .border-emerald-100 { border-color:rgba(16,185,129,.28) !important; }
     .dark .border-blue-100    { border-color:rgba(59,130,246,.28) !important; }
     .dark .border-amber-100   { border-color:rgba(245,158,11,.28) !important; }
+    /* família orange (ex.: loans/detail) — alinhada ao padrão de amber */
+    .dark .bg-orange-50  { background-color:rgba(249,115,22,.12) !important; }
+    .dark .bg-orange-100 { background-color:rgba(249,115,22,.18) !important; }
+    .dark .border-orange-100 { border-color:rgba(249,115,22,.28) !important; }
+    /* hovers de superfícies coloridas suaves — não clarear no escuro */
+    .dark .hover\:bg-blue-50:hover   { background-color:rgba(59,130,246,.12) !important; }
+    .dark .hover\:bg-green-100:hover { background-color:rgba(16,185,129,.18) !important; }
+    .dark .hover\:bg-orange-100:hover { background-color:rgba(249,115,22,.18) !important; }
   </style>
   {% block extra_head %}{% endblock %}
 </head>

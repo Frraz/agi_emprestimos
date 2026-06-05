@@ -282,6 +282,48 @@ class TestEditarPagamento:
         assert emp.capital_atual == Decimal('880.00')  # 1000 - 120
 
 
+# ── P8 — Gestão de capital ──────────────────────────────────────────────────
+
+class TestCapital:
+
+    def test_caixa_reflete_emprestimo_e_recebimento_com_juros(self):
+        from loans.application.services import EmprestimoService
+        from core.models_config import CapitalOperacional
+        from core.capital import registrar_aporte
+
+        u = _user('cap1'); c = _cliente('C', '40404040401', owner=u)
+        registrar_aporte(u, Decimal('1000'), 'aporte inicial')
+        cfg = CapitalOperacional.get_for_user(u)
+        assert cfg.capital_em_caixa == Decimal('1000.00')
+
+        emp = EmprestimoService.criar_emprestimo_comum(
+            cliente_id=str(c.id), capital=Decimal('600'), taxa_mensal=Decimal('0.20'),
+            data_inicio=HOJE, data_vencimento=HOJE + timedelta(days=30), usuario=u,
+        )
+        cfg = CapitalOperacional.get_for_user(u)
+        assert cfg.capital_emprestado == Decimal('600.00')
+        assert cfg.capital_em_caixa == Decimal('400.00')   # 1000 - 600
+
+        EmprestimoService.registrar_pagamento_comum(
+            emprestimo_id=str(emp.id), valor=Decimal('720'), data_pagamento=HOJE, usuario=u,
+        )
+        cfg = CapitalOperacional.get_for_user(u)
+        # Quitado: emprestado 0, juros 120 recebidos → caixa = 1000 + 120
+        assert cfg.capital_emprestado == Decimal('0.00')
+        assert cfg.juros_recebidos == Decimal('120.00')
+        assert cfg.capital_em_operacao == Decimal('1120.00')
+        assert cfg.capital_em_caixa == Decimal('1120.00')
+
+    def test_capital_isolado_por_usuario(self):
+        from core.models_config import CapitalOperacional
+        from core.capital import registrar_aporte
+        a = _user('cap_a'); b = _user('cap_b')
+        registrar_aporte(a, Decimal('500'))
+        registrar_aporte(b, Decimal('999'))
+        assert CapitalOperacional.get_for_user(a).total_capital == Decimal('500.00')
+        assert CapitalOperacional.get_for_user(b).total_capital == Decimal('999.00')
+
+
 # ── P2 — Cura de saldos (recalcular_saldos) ─────────────────────────────────
 
 class TestRecalcularSaldos:

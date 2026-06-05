@@ -59,12 +59,15 @@ def calcular_metricas_dashboard(user=None) -> dict:
     # ── Projeções ──────────────────────────────────────────────────────────
     projecoes = _calcular_projecoes(ativos, taxa_inadimplencia)
 
+    # ── Total em operação (capital aportado + juros recebidos) ─────────────
+    capital_total = capital_op.capital_em_operacao
+
     # ── Taxa de risco da operação (composta e ponderada) ───────────────────
     taxa_risco = _calcular_taxa_risco(
         ativos=ativos,
         vencidos=vencidos,
         capital_emprestado=capital_emprestado,
-        capital_total=capital_op.total_capital,
+        capital_total=capital_total,
         custo_inadimplencia=custo_inadimplencia,
     )
 
@@ -72,14 +75,13 @@ def calcular_metricas_dashboard(user=None) -> dict:
     recebimentos_mensais = _calcular_recebimentos_mensais(user=user)
 
     # ── Ocupação do capital (sem query adicional) ──────────────────────────
-    capital_total = capital_op.total_capital
     taxa_ocupacao = (
         capital_emprestado / capital_total * 100
         if capital_total and capital_total > 0 else Decimal('0')
     )
 
     return {
-        'capital_total_operador': capital_op.total_capital,
+        'capital_total_operador': capital_total,
         'capital_emprestado': capital_emprestado,
         'capital_em_caixa': capital_op.capital_em_caixa,
         'capital_por_tipo': capital_por_tipo,

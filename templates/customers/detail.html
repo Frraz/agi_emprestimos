@@ -52,6 +52,41 @@
         </div>
       </div>
 
+      {# Tags do cliente #}
+      <div class="mb-4">
+        <div class="flex items-center justify-between mb-2">
+          <p class="text-2xs text-slate-400 font-semibold uppercase tracking-wide">Tags</p>
+          <a href="{% url 'web_customers:tags' %}" class="text-2xs text-blue-500 hover:underline">Gerenciar</a>
+        </div>
+        <div class="flex flex-wrap gap-1.5 mb-2">
+          {% for t in cliente.tags.all %}
+          <span class="badge badge-{{ t.cor }}">{{ t.nome }}</span>
+          {% empty %}
+          <span class="text-xs text-slate-400">Sem tags</span>
+          {% endfor %}
+        </div>
+        {% if tags %}
+        <details class="text-xs">
+          <summary class="cursor-pointer text-blue-500 hover:underline">Editar tags</summary>
+          <form method="post" action="{% url 'web_customers:set_tags' pk=cliente.id %}" class="mt-2 space-y-2">
+            {% csrf_token %}
+            <div class="flex flex-wrap gap-2">
+              {% for t in tags %}
+              <label class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border border-slate-200 cursor-pointer">
+                <input type="checkbox" name="tags" value="{{ t.id }}"
+                       {% if t.id in tags_cliente_ids %}checked{% endif %}>
+                <span class="badge badge-{{ t.cor }} text-2xs">{{ t.nome }}</span>
+              </label>
+              {% endfor %}
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Salvar tags</button>
+          </form>
+        </details>
+        {% else %}
+        <a href="{% url 'web_customers:tags' %}" class="text-xs text-blue-500 hover:underline">+ Criar tags</a>
+        {% endif %}
+      </div>
+
       <div class="space-y-2.5 text-sm">
         {% if cliente.saldo_devedor_total %}
         <div class="flex justify-between items-center p-2.5 bg-slate-50 rounded-lg">

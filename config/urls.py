@@ -21,6 +21,7 @@ urlpatterns = [
     path('emprestimos/', include('loans.interfaces.web_urls')),
     path('cobrancas/', include('cobrancas.interfaces.web_urls')),
     path('pagamentos/', include('payments.interfaces.web_urls')),
+    path('backup/', include('exports.web_urls')),
 
     path('garantias/', include('collaterals.interfaces.web_urls')),
     path('api/cep/', customer_web.buscar_cep, name='buscar_cep'),

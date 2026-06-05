@@ -4,7 +4,7 @@ from django.contrib import messages as flash
 from django.core.paginator import Paginator
 from django.db.models import Q
 
-from customers.infrastructure.models import Cliente
+from customers.infrastructure.models import Cliente, TagCliente
 from customers.interfaces.forms import ClienteForm
 from core.exceptions import AgiBaseException
 from core.ownership import filtrar_por_usuario
@@ -12,32 +12,77 @@ import urllib.request
 import json
 
 
+def _tags_do_usuario(request):
+    return filtrar_por_usuario(TagCliente.objects.all(), request.user)
+
+
 @login_required
 def cliente_list(request):
     q = request.GET.get('q', '').strip()
     classificacao = request.GET.get('classificacao', '')
+    tag = request.GET.get('tag', '')
 
     qs = filtrar_por_usuario(
         Cliente.objects.filter(deleted_at__isnull=True), request.user
-    ).order_by('nome')
+    ).prefetch_related('tags').order_by('nome')
     if q:
         qs = qs.filter(
             Q(nome__icontains=q) | Q(cpf__icontains=q) | Q(telefone_principal__icontains=q)
         )
     if classificacao:
         qs = qs.filter(classificacao=classificacao)
+    if tag:
+        qs = qs.filter(tags__id=tag)
 
     paginator = Paginator(qs, 30)
     page = paginator.get_page(request.GET.get('page', 1))
 
+    ctx = {
+        'page': page, 'q': q, 'classificacao': classificacao, 'tag': tag,
+        'tags': _tags_do_usuario(request), 'total': qs.count(),
+    }
     # HTMX: retorna só as linhas da tabela
     if request.htmx:
-        return render(request, 'customers/_rows.html', {'page': page})
+        return render(request, 'customers/_rows.html', ctx)
+    return render(request, 'customers/list.html', ctx)
 
-    return render(request, 'customers/list.html', {
-        'page': page, 'q': q, 'classificacao': classificacao,
-        'total': qs.count(),
+
+@login_required
+def tag_manage(request):
+    """Gerencia (lista + cria) tags do operador."""
+    if request.method == 'POST':
+        nome = request.POST.get('nome', '').strip()
+        cor = request.POST.get('cor', 'slate')
+        if nome:
+            TagCliente.objects.create(owner=request.user, nome=nome[:40], cor=cor)
+            flash.success(request, f'Tag "{nome}" criada.')
+        return redirect('web_customers:tags')
+    return render(request, 'customers/tags.html', {
+        'tags': _tags_do_usuario(request).order_by('nome'),
+        'cores': TagCliente.CORES,
     })
+
+
+@login_required
+def tag_delete(request, pk):
+    tag = get_object_or_404(_tags_do_usuario(request), pk=pk)
+    if request.method == 'POST':
+        nome = tag.nome
+        tag.delete()
+        flash.success(request, f'Tag "{nome}" removida.')
+    return redirect('web_customers:tags')
+
+
+@login_required
+def cliente_set_tags(request, pk):
+    """Define as tags de um cliente (checkboxes do detalhe)."""
+    cliente = _cliente_do_usuario(request, pk)
+    if request.method == 'POST':
+        ids = request.POST.getlist('tags')
+        tags = _tags_do_usuario(request).filter(id__in=ids)
+        cliente.tags.set(tags)
+        flash.success(request, 'Tags atualizadas.')
+    return redirect('web_customers:detail', pk=cliente.id)
 
 
 def _cliente_do_usuario(request, pk):
@@ -57,6 +102,8 @@ def cliente_detail(request, pk):
     return render(request, 'customers/detail.html', {
         'cliente': cliente,
         'emprestimos': emprestimos,
+        'tags': _tags_do_usuario(request).order_by('nome'),
+        'tags_cliente_ids': list(cliente.tags.values_list('id', flat=True)),
     })
 
 

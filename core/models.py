@@ -64,4 +64,6 @@ class SoftDeleteModel(BaseModel):
     class Meta:
         abstract = True
 
-from core.models_config import CapitalOperacional  # noqa
+from core.models_config import (  # noqa
+    CapitalOperacional, MovimentacaoCapital, ConfiguracaoNotificacao,
+)

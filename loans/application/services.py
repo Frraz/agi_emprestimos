@@ -64,6 +64,7 @@ class EmprestimoService:
             owner=usuario,
         )
         _audit(emprestimo, 'create', usuario)
+        _registrar_movimento_emprestimo(emprestimo, usuario)
         return emprestimo
 
     @staticmethod
@@ -141,6 +142,7 @@ class EmprestimoService:
             ])
 
         _audit(emprestimo, 'create', usuario)
+        _registrar_movimento_emprestimo(emprestimo, usuario)
         return emprestimo
 
     # ── Pagamentos ─────────────────────────────────────────────────────────
@@ -212,6 +214,7 @@ class EmprestimoService:
         # Atualiza classificação do cliente (fora do atomic para não bloquear)
         _atualizar_classificacao_cliente(str(emprestimo.cliente_id))
         _audit(emprestimo, 'payment', usuario, {'pagamento_id': str(pagamento.id)})
+        _registrar_movimento_recebimento(emprestimo, valor, usuario)
 
         return pagamento
 
@@ -349,6 +352,7 @@ class EmprestimoService:
 
         _atualizar_classificacao_cliente(str(emp.cliente_id))
         _audit(emp, 'payment', usuario, {'parcelas': [a['numero'] for a in afetadas]})
+        _registrar_movimento_recebimento(emp, valor, usuario)
 
         return {
             'afetadas': afetadas,
@@ -521,6 +525,28 @@ def _validar_status_para_pagamento(emprestimo):
         raise EmprestimoInativoError(
             f"Empréstimo em status '{emprestimo.status}' não aceita pagamentos."
         )
+
+
+def _registrar_movimento_emprestimo(emprestimo, usuario):
+    if usuario is None:
+        return
+    try:
+        from core.capital import registrar_movimento_emprestimo
+        registrar_movimento_emprestimo(emprestimo, usuario, quando=emprestimo.data_inicio)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).warning('Falha no movimento de capital (empréstimo)')
+
+
+def _registrar_movimento_recebimento(emprestimo, valor, usuario):
+    if usuario is None:
+        return
+    try:
+        from core.capital import registrar_movimento_recebimento
+        registrar_movimento_recebimento(emprestimo, valor, usuario)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).warning('Falha no movimento de capital (recebimento)')
 
 
 def _atualizar_classificacao_cliente(cliente_id: str):

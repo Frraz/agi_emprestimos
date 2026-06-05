@@ -12,6 +12,11 @@
     <div class="flex-1 min-w-0">
       <p class="text-sm font-semibold text-slate-900 truncate">{{ cliente.nome }}</p>
       <p class="text-xs text-slate-400 mt-0.5 truncate">{{ cliente.cpf }} · {{ cliente.telefone_principal }}</p>
+      {% if cliente.tags.all %}
+      <div class="flex flex-wrap gap-1 mt-1">
+        {% for t in cliente.tags.all %}<span class="badge badge-{{ t.cor }} text-2xs">{{ t.nome }}</span>{% endfor %}
+      </div>
+      {% endif %}
     </div>
     <div class="flex-shrink-0 flex flex-col items-end gap-1">
       <span class="badge {% if cliente.classificacao == 'verde' %}badge-green{% elif cliente.classificacao == 'amarelo' %}badge-yellow{% else %}badge-red{% endif %}">
@@ -67,6 +72,11 @@
               </a>
               {% if cliente.profissao %}
               <p class="text-xs text-slate-400 truncate">{{ cliente.profissao }}</p>
+              {% endif %}
+              {% if cliente.tags.all %}
+              <div class="flex flex-wrap gap-1 mt-1">
+                {% for t in cliente.tags.all %}<span class="badge badge-{{ t.cor }} text-2xs">{{ t.nome }}</span>{% endfor %}
+              </div>
               {% endif %}
             </div>
           </div>
@@ -124,11 +134,11 @@
     <p class="text-xs text-slate-500">{{ page.start_index }}–{{ page.end_index }} de {{ page.paginator.count }}</p>
     <div class="flex gap-1">
       {% if page.has_previous %}
-      <a href="?page={{ page.previous_page_number }}&q={{ q }}&classificacao={{ classificacao }}"
+      <a href="?page={{ page.previous_page_number }}&q={{ q }}&classificacao={{ classificacao }}&tag={{ tag }}"
          class="btn btn-secondary btn-sm">← Anterior</a>
       {% endif %}
       {% if page.has_next %}
-      <a href="?page={{ page.next_page_number }}&q={{ q }}&classificacao={{ classificacao }}"
+      <a href="?page={{ page.next_page_number }}&q={{ q }}&classificacao={{ classificacao }}&tag={{ tag }}"
          class="btn btn-secondary btn-sm">Próxima →</a>
       {% endif %}
     </div>
@@ -142,11 +152,11 @@
   <p class="text-xs text-slate-500">Pág. {{ page.number }}/{{ page.paginator.num_pages }}</p>
   <div class="flex gap-1.5">
     {% if page.has_previous %}
-    <a href="?page={{ page.previous_page_number }}&q={{ q }}&classificacao={{ classificacao }}"
+    <a href="?page={{ page.previous_page_number }}&q={{ q }}&classificacao={{ classificacao }}&tag={{ tag }}"
        class="btn btn-secondary btn-sm">←</a>
     {% endif %}
     {% if page.has_next %}
-    <a href="?page={{ page.next_page_number }}&q={{ q }}&classificacao={{ classificacao }}"
+    <a href="?page={{ page.next_page_number }}&q={{ q }}&classificacao={{ classificacao }}&tag={{ tag }}"
        class="btn btn-secondary btn-sm">→</a>
     {% endif %}
   </div>

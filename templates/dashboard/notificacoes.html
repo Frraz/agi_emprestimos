@@ -1,0 +1,55 @@
+{% extends "base/base.html" %}
+{% block title %}Notificações{% endblock %}
+{% block page_title %}Configurações · Notificações{% endblock %}
+{% block page_subtitle %}
+  <p class="text-xs text-slate-500 mt-0.5">Avise-se sobre vencimentos próximos</p>
+{% endblock %}
+{% block page_actions %}
+  <a href="{% url 'dashboard:dashboard-index' %}" class="text-sm text-slate-500 hover:text-slate-700 font-medium">← Dashboard</a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-lg">
+  <div class="card p-6">
+
+    <div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-5 text-xs text-blue-700">
+      <strong>Em breve:</strong> esta é a estrutura das notificações. O envio
+      automático (por e-mail) será ativado em uma próxima atualização — por
+      enquanto suas preferências ficam salvas.
+    </div>
+
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+
+      <label class="flex items-center justify-between p-3 rounded-lg border border-slate-200">
+        <span class="text-sm font-medium text-slate-700">Ativar notificações</span>
+        <input type="checkbox" name="ativo" class="w-5 h-5" {% if cfg.ativo %}checked{% endif %}>
+      </label>
+
+      <p class="text-xs text-slate-400 pt-1">Quando avisar antes do vencimento:</p>
+
+      <label class="flex items-center justify-between p-3 rounded-lg border border-slate-200">
+        <span class="text-sm text-slate-700">1 dia antes</span>
+        <input type="checkbox" name="notificar_1_dia" class="w-5 h-5" {% if cfg.notificar_1_dia %}checked{% endif %}>
+      </label>
+      <label class="flex items-center justify-between p-3 rounded-lg border border-slate-200">
+        <span class="text-sm text-slate-700">3 dias antes</span>
+        <input type="checkbox" name="notificar_3_dias" class="w-5 h-5" {% if cfg.notificar_3_dias %}checked{% endif %}>
+      </label>
+      <label class="flex items-center justify-between p-3 rounded-lg border border-slate-200">
+        <span class="text-sm text-slate-700">7 dias antes</span>
+        <input type="checkbox" name="notificar_7_dias" class="w-5 h-5" {% if cfg.notificar_7_dias %}checked{% endif %}>
+      </label>
+
+      <div class="flex items-center justify-between p-3 rounded-lg bg-slate-50 text-xs text-slate-500">
+        <span>Canal</span>
+        <span class="font-medium">E-mail <span class="badge badge-slate">em breve</span></span>
+      </div>
+
+      <button type="submit" class="w-full py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+        Salvar preferências
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

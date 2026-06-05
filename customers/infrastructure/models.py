@@ -10,6 +10,9 @@ class Cliente(BaseModel):
     # Isolamento por usuário (NULL = legado compartilhado). Ver core/ownership.py.
     owner = owner_field()
 
+    # Tags manuais (P6). Ver TagCliente abaixo.
+    tags = models.ManyToManyField('customers.TagCliente', blank=True, related_name='clientes')
+
 
     CLASSIFICACAO_CHOICES = [
         ('verde', '🟢 Bom Pagador'),
@@ -162,6 +165,28 @@ class Cliente(BaseModel):
             status__in=['ativo', 'inadimplente'],
             deleted_at__isnull=True,
         ).aggregate(total=Sum('capital_atual'))['total'] or 0
+
+
+class TagCliente(BaseModel):
+    """Tag manual aplicável a clientes (ex.: VIP, Inadimplente, Renegociação).
+    Criada e gerida pelo próprio operador (isolada por owner)."""
+
+    CORES = [
+        ('slate', 'Cinza'), ('green', 'Verde'), ('blue', 'Azul'),
+        ('yellow', 'Amarelo'), ('red', 'Vermelho'), ('purple', 'Roxo'),
+    ]
+
+    owner = owner_field()
+    nome = models.CharField(max_length=40)
+    cor = models.CharField(max_length=10, choices=CORES, default='slate')
+
+    class Meta:
+        verbose_name = 'Tag de Cliente'
+        verbose_name_plural = 'Tags de Clientes'
+        ordering = ['nome']
+
+    def __str__(self):
+        return self.nome
 
 
 class DocumentoCliente(BaseModel):

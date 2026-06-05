@@ -1,0 +1,60 @@
+{# Slide-over de edição de pagamento (HTMX) #}
+<div class="fixed inset-0 z-[60]" role="dialog" aria-modal="true" aria-label="Editar pagamento">
+  <div class="absolute inset-0 bg-black/40"
+       onclick="document.getElementById('slideover-root').innerHTML=''"></div>
+
+  <div class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+      <h3 class="text-sm font-semibold text-slate-700">Editar pagamento</h3>
+      <button type="button" aria-label="Fechar"
+              onclick="document.getElementById('slideover-root').innerHTML=''"
+              class="text-slate-400 hover:text-slate-600 text-lg leading-none">✕</button>
+    </div>
+
+    <form hx-post="{% url 'web_payments:editar' pk=pag.id %}"
+          hx-target="#slideover-root" hx-swap="innerHTML"
+          class="flex-1 overflow-y-auto p-5 space-y-4">
+      {% csrf_token %}
+
+      <div class="rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-500 border border-slate-100">
+        <p class="font-medium text-slate-700">{{ pag.emprestimo.cliente.nome }}</p>
+        <p>{{ pag.emprestimo.get_tipo_display }}{% if pag.parcela %} · Parcela {{ pag.parcela.numero }}{% endif %}</p>
+      </div>
+
+      {% if erro %}
+      <p class="text-sm text-red-500 rounded-lg bg-red-50 border border-red-200 px-3 py-2">{{ erro }}</p>
+      {% endif %}
+
+      <div>
+        <label class="block text-xs text-slate-500 mb-1">Valor (R$)</label>
+        <input type="number" step="0.01" name="valor" value="{{ pag.valor|stringformat:'.2f' }}"
+               class="input py-2" required autofocus>
+      </div>
+      <div>
+        <label class="block text-xs text-slate-500 mb-1">Data do pagamento</label>
+        <input type="date" name="data_pagamento" value="{{ pag.data_pagamento|date:'Y-m-d' }}"
+               class="input py-2" required>
+      </div>
+      <div>
+        <label class="block text-xs text-slate-500 mb-1">Observações</label>
+        <textarea name="observacoes" rows="2" class="input py-2">{{ pag.observacoes|default:'' }}</textarea>
+      </div>
+
+      <p class="text-xs text-slate-400">
+        Ao salvar, o saldo do empréstimo é recalculado automaticamente.
+      </p>
+
+      <div class="flex gap-2 pt-1">
+        <button type="button"
+                onclick="document.getElementById('slideover-root').innerHTML=''"
+                class="flex-1 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200">
+          Cancelar
+        </button>
+        <button type="submit"
+                class="flex-1 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+          Salvar alterações
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

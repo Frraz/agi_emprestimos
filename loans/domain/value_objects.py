@@ -38,14 +38,16 @@ class Dinheiro:
 class TaxaJuros:
     """
     Taxa de juros mensal.
-    valor: decimal entre 0 e 1. Ex: 0.05 = 5% a.m.
+    valor: decimal entre 0 (inclusive) e 1 (exclusivo). Ex: 0.05 = 5% a.m.
+    Taxa 0 é permitida (empréstimo sem juros).
     """
     valor: Decimal
 
     def __post_init__(self):
-        if not (Decimal('0') < self.valor < Decimal('1')):
+        if not (Decimal('0') <= self.valor < Decimal('1')):
             raise ValueError(
-                f"Taxa de juros deve estar entre 0 e 1 (exclusivo). Recebido: {self.valor}"
+                f"Taxa de juros deve estar entre 0 (inclusive) e 1 (exclusivo). "
+                f"Recebido: {self.valor}"
             )
 
     @property

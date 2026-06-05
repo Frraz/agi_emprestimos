@@ -42,17 +42,26 @@ class EmprestimoService:
         _validar_financeiro(capital, taxa_mensal)
         cliente = _get_cliente(cliente_id)
 
+        # Lança o juros do primeiro ciclo já na criação (sem capitalização):
+        # a dívida total passa a ser capital + juros_acumulados desde o início.
+        juros_primeiro_ciclo = CalculadoraEmprestimoComum.calcular_juros_mes(
+            capital, taxa_mensal
+        )
+
         emprestimo = Emprestimo.objects.create(
             cliente=cliente,
             tipo='comum',
             capital_inicial=capital,
             capital_atual=capital,
             taxa_juros_mensal=taxa_mensal,
+            juros_acumulados=juros_primeiro_ciclo,
+            data_ultimo_acumulo=data_vencimento,
             data_inicio=data_inicio,
             data_vencimento=data_vencimento,
             status='ativo',
             observacoes=observacoes,
             registrado_por=usuario,
+            owner=usuario,
         )
         _audit(emprestimo, 'create', usuario)
         return emprestimo
@@ -113,6 +122,7 @@ class EmprestimoService:
                 status='ativo',
                 observacoes=observacoes,
                 registrado_por=usuario,
+                owner=usuario,
             )
 
             ParcelaEmprestimo.objects.bulk_create([
@@ -153,11 +163,12 @@ class EmprestimoService:
         emprestimo = _get_emprestimo(emprestimo_id)
         _validar_status_para_pagamento(emprestimo)
 
-        # Domínio puro: sem acesso ao banco
+        # Domínio puro: sem acesso ao banco. Sem capitalização — paga juros
+        # acumulados primeiro, depois abate o capital.
         resultado = CalculadoraEmprestimoComum.aplicar_pagamento(
             capital_atual=emprestimo.capital_atual,
-            taxa_mensal=emprestimo.taxa_juros_mensal,
             valor_pago=valor,
+            juros_acumulados=emprestimo.juros_acumulados,
         )
 
         novo_status = (
@@ -166,7 +177,7 @@ class EmprestimoService:
         )
 
         # Determina tipo de pagamento para relatório
-        if resultado.capital_pago > Decimal('0') and resultado.juros_pagos > Decimal('0'):
+        if resultado.capital_restante <= Decimal('0'):
             tipo = 'capital_total'
         elif resultado.capital_pago > Decimal('0'):
             tipo = 'capital_parcial'
@@ -175,11 +186,13 @@ class EmprestimoService:
 
         with transaction.atomic():
             emprestimo.capital_atual = resultado.capital_restante
+            emprestimo.juros_acumulados = resultado.juros_acumulados_restante
             emprestimo.status = novo_status
             if novo_status == 'quitado':
                 emprestimo.data_quitacao = data_pagamento
             emprestimo.save(update_fields=[
-                'capital_atual', 'status', 'data_quitacao', 'updated_at'
+                'capital_atual', 'juros_acumulados', 'status',
+                'data_quitacao', 'updated_at',
             ])
 
             pagamento = Pagamento.objects.create(
@@ -193,6 +206,7 @@ class EmprestimoService:
                 capital_depois=resultado.capital_restante,
                 observacoes=observacoes,
                 registrado_por=usuario,
+                owner=usuario,
             )
 
         # Atualiza classificação do cliente (fora do atomic para não bloquear)
@@ -201,13 +215,286 @@ class EmprestimoService:
 
         return pagamento
 
+    # ── Edição de pagamento (P4) ─────────────────────────────────────────────
+
+    @staticmethod
+    def editar_pagamento(
+        pagamento_id: str,
+        valor: Decimal,
+        data_pagamento: date,
+        observacoes: str = '',
+        usuario=None,
+    ):
+        """
+        Edita um pagamento (valor/data/observações) e recalcula o saldo do
+        empréstimo. Sobrescreve a regra histórica de imutabilidade (decisão do
+        cliente — sem senha, controle pelo usuário autenticado). Registra
+        AuditLog da alteração.
+        """
+        from payments.infrastructure.models import Pagamento
+
+        try:
+            pag = Pagamento.objects.select_related('emprestimo', 'parcela').get(
+                id=pagamento_id, deleted_at__isnull=True,
+            )
+        except Pagamento.DoesNotExist:
+            raise EntidadeNaoEncontradaError(f'Pagamento não encontrado: {pagamento_id}')
+
+        emp = pag.emprestimo
+        antes = {'valor': str(pag.valor), 'data': str(pag.data_pagamento)}
+
+        with transaction.atomic():
+            pag.valor = _money(valor)
+            pag.data_pagamento = data_pagamento
+            pag.observacoes = observacoes
+            pag.save(update_fields=['valor', 'data_pagamento', 'observacoes', 'updated_at'])
+
+            if emp.tipo == 'comum':
+                capital, juros = reconstruir_saldo_comum(emp, date.today())
+                emp.capital_atual = capital
+                emp.juros_acumulados = juros
+                if capital <= Decimal('0'):
+                    emp.status = 'quitado'
+                    emp.data_quitacao = data_pagamento
+                elif emp.status == 'quitado':
+                    emp.status = 'ativo'
+                    emp.data_quitacao = None
+                emp.save(update_fields=[
+                    'capital_atual', 'juros_acumulados', 'status',
+                    'data_quitacao', 'updated_at',
+                ])
+            else:
+                if pag.parcela_id:
+                    _recompute_split_pagamento(pag)
+                    _recompute_parcela_from_payments(pag.parcela)
+                _recalcular_capital_parcelado(emp, data_pagamento)
+
+        _atualizar_classificacao_cliente(str(emp.cliente_id))
+        _audit(pag, 'update', usuario, {
+            'antes': antes, 'depois': {'valor': str(pag.valor), 'data': str(pag.data_pagamento)},
+        })
+        return pag
+
+    # ── Pagamento de PARCELAS (empréstimo parcelado) ─────────────────────────
+
+    @staticmethod
+    def registrar_pagamento_parcelas(
+        emprestimo_id: str,
+        parcela_ids: list,
+        valor: Decimal,
+        data_pagamento: date,
+        observacoes: str = '',
+        usuario=None,
+        aplicar_excedente: bool = True,
+    ) -> dict:
+        """
+        Registra pagamento de uma ou mais parcelas de um empréstimo PARCELADO.
+
+        Distribui `valor` nas parcelas selecionadas (em ordem de número),
+        suportando pagamento parcial e total. Se sobrar (excedente) e
+        aplicar_excedente=True, o restante é aplicado automaticamente nas
+        próximas parcelas em aberto. Retorna metadados para feedback visual.
+        """
+        from loans.domain.exceptions import EmprestimoInativoError
+
+        emp = _get_emprestimo(emprestimo_id)
+        if emp.tipo != 'parcelado':
+            raise EmprestimoInativoError('Este empréstimo não é parcelado.')
+        _validar_status_para_pagamento(emp)
+
+        selecionadas = list(
+            emp.parcelas.filter(id__in=parcela_ids, status__in=_PARCELA_ABERTA)
+            .order_by('numero')
+        )
+        if not selecionadas:
+            raise EntidadeNaoEncontradaError('Nenhuma parcela em aberto selecionada.')
+
+        valor = _money(valor)
+        restante = valor
+        afetadas = []        # parcelas pagas dentro da seleção
+        excedente_info = []  # parcelas afetadas pelo excedente automático
+
+        with transaction.atomic():
+            for p in selecionadas:
+                if restante <= Decimal('0'):
+                    break
+                aplicado = min(restante, p.valor_em_aberto)
+                _aplicar_em_parcela(emp, p, aplicado, data_pagamento, usuario, observacoes)
+                restante = _money(restante - aplicado)
+                afetadas.append({'numero': p.numero, 'valor_aplicado': aplicado})
+
+            if restante > Decimal('0') and aplicar_excedente:
+                ids_sel = [p.id for p in selecionadas]
+                proximas = (
+                    emp.parcelas.filter(status__in=_PARCELA_ABERTA)
+                    .exclude(id__in=ids_sel).order_by('numero')
+                )
+                for p in proximas:
+                    if restante <= Decimal('0'):
+                        break
+                    aplicado = min(restante, p.valor_em_aberto)
+                    _aplicar_em_parcela(
+                        emp, p, aplicado, data_pagamento, usuario,
+                        'Excedente aplicado automaticamente',
+                    )
+                    restante = _money(restante - aplicado)
+                    p.refresh_from_db()
+                    excedente_info.append({
+                        'numero': p.numero,
+                        'valor_aplicado': aplicado,
+                        'novo_em_aberto': p.valor_em_aberto,
+                    })
+
+            _recalcular_capital_parcelado(emp, data_pagamento)
+
+        _atualizar_classificacao_cliente(str(emp.cliente_id))
+        _audit(emp, 'payment', usuario, {'parcelas': [a['numero'] for a in afetadas]})
+
+        return {
+            'afetadas': afetadas,
+            'excedente_info': excedente_info,
+            'excedente_nao_aplicado': restante,
+            'valor_total': valor,
+            'quitado': emp.status == 'quitado',
+        }
+
 
 # ── Helpers privados do módulo ─────────────────────────────────────────────
+
+_PARCELA_ABERTA = ('pendente', 'parcialmente_pago', 'atrasado')
+
+
+def _money(v) -> Decimal:
+    from decimal import ROUND_HALF_UP
+    return Decimal(v).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+
+def reconstruir_saldo_comum(emp, data_ref: date):
+    """
+    Reproduz a vida financeira de um empréstimo COMUM e devolve
+    (capital_atual, juros_acumulados) corretos, sem capitalização (juros
+    simples). Lança o 1º ciclo na criação e um ciclo por vencimento mensal,
+    intercalando os pagamentos por data. Reutilizado pelo command
+    recalcular_saldos e pela edição de pagamentos.
+    """
+    from dateutil.relativedelta import relativedelta
+
+    taxa = emp.taxa_juros_mensal
+    capital = emp.capital_inicial
+    juros_acum = CalculadoraEmprestimoComum.calcular_juros_mes(capital, taxa)
+
+    ancora = emp.data_vencimento or (emp.data_inicio + relativedelta(months=1))
+    ciclos = []
+    d = ancora + relativedelta(months=1)
+    while d <= data_ref:
+        ciclos.append(d)
+        d += relativedelta(months=1)
+
+    pagamentos = list(emp.pagamentos.order_by('data_pagamento', 'created_at'))
+    i = 0
+    for pag in pagamentos:
+        while i < len(ciclos) and ciclos[i] <= pag.data_pagamento:
+            juros_acum += CalculadoraEmprestimoComum.calcular_juros_mes(capital, taxa)
+            i += 1
+        res = CalculadoraEmprestimoComum.aplicar_pagamento(
+            capital_atual=capital, valor_pago=pag.valor, juros_acumulados=juros_acum,
+        )
+        capital = res.capital_restante
+        juros_acum = res.juros_acumulados_restante
+    while i < len(ciclos):
+        juros_acum += CalculadoraEmprestimoComum.calcular_juros_mes(capital, taxa)
+        i += 1
+
+    return (max(Decimal('0'), capital), juros_acum)
+
+
+def _recompute_split_pagamento(pag):
+    """Recalcula a divisão juros/capital de um pagamento de parcela a partir
+    do seu valor atual (proporcional ao valor da parcela)."""
+    parcela = pag.parcela
+    if parcela.valor_parcela > Decimal('0'):
+        prop = pag.valor / parcela.valor_parcela
+    else:
+        prop = Decimal('0')
+    pag.valor_juros_pagos = _money(parcela.valor_juros * prop)
+    pag.valor_capital_pago = _money(pag.valor - pag.valor_juros_pagos)
+    pag.save(update_fields=['valor_juros_pagos', 'valor_capital_pago', 'updated_at'])
+
+
+def _recompute_parcela_from_payments(parcela):
+    """Recalcula valor_pago e status de uma parcela a partir dos seus
+    pagamentos não deletados."""
+    from django.db.models import Sum
+    total = (
+        parcela.pagamentos_parcela.filter(deleted_at__isnull=True)
+        .aggregate(t=Sum('valor'))['t'] or Decimal('0')
+    )
+    parcela.valor_pago = _money(total)
+    if parcela.valor_pago >= parcela.valor_parcela:
+        parcela.status = 'pago'
+    elif parcela.valor_pago > Decimal('0'):
+        parcela.status = 'parcialmente_pago'
+    else:
+        parcela.status = 'pendente'
+    parcela.save(update_fields=['valor_pago', 'status', 'updated_at'])
+
+
+def _aplicar_em_parcela(emp, parcela, valor, data_pagamento, usuario, observacoes=''):
+    """Aplica `valor` a uma parcela, atualiza seu status e grava o Pagamento.
+    A divisão juros/capital é proporcional ao valor da parcela (apenas para
+    relatório); o capital do empréstimo é recalculado à parte."""
+    from payments.infrastructure.models import Pagamento
+
+    valor = _money(valor)
+    if parcela.valor_parcela > Decimal('0'):
+        prop = valor / parcela.valor_parcela
+    else:
+        prop = Decimal('0')
+    juros_part = _money(parcela.valor_juros * prop)
+    capital_part = _money(valor - juros_part)
+
+    parcela.valor_pago = _money(parcela.valor_pago + valor)
+    parcela.data_pagamento = data_pagamento
+    parcela.status = 'pago' if parcela.valor_pago >= parcela.valor_parcela else 'parcialmente_pago'
+    parcela.save(update_fields=['valor_pago', 'data_pagamento', 'status', 'updated_at'])
+
+    Pagamento.objects.create(
+        emprestimo=emp,
+        parcela=parcela,
+        valor=valor,
+        tipo='parcela',
+        data_pagamento=data_pagamento,
+        valor_juros_pagos=juros_part,
+        valor_capital_pago=capital_part,
+        capital_antes=emp.capital_atual,
+        capital_depois=emp.capital_atual,
+        observacoes=observacoes,
+        registrado_por=usuario,
+        owner=usuario,
+    )
+
+
+def _recalcular_capital_parcelado(emp, data_pagamento):
+    """capital_atual = capital_inicial − principal pago. Quita o empréstimo
+    quando não há mais parcelas em aberto."""
+    from django.db.models import Sum
+
+    principal_pago = (
+        emp.pagamentos.aggregate(t=Sum('valor_capital_pago'))['t'] or Decimal('0')
+    )
+    emp.capital_atual = _money(max(Decimal('0'), emp.capital_inicial - principal_pago))
+
+    tem_aberta = emp.parcelas.filter(status__in=_PARCELA_ABERTA).exists()
+    if not tem_aberta or emp.capital_atual <= Decimal('0'):
+        emp.status = 'quitado'
+        emp.data_quitacao = data_pagamento
+    emp.save(update_fields=['capital_atual', 'status', 'data_quitacao', 'updated_at'])
 
 def _validar_financeiro(capital: Decimal, taxa: Decimal):
     if capital <= Decimal('0'):
         raise CapitalInvalidoError(f"Capital inválido: {capital}")
-    if not (Decimal('0') < taxa < Decimal('1')):
+    # Taxa 0 é permitida (empréstimo sem juros); apenas negativos e >= 1 são inválidos.
+    if not (Decimal('0') <= taxa < Decimal('1')):
         raise TaxaInvalidaError(f"Taxa inválida: {taxa}. Use decimal entre 0 e 1.")
 
 

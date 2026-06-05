@@ -43,67 +43,76 @@ class ResultadoPagamento:
     capital_pago: Decimal
     excedente: Decimal   # Valor pago além do necessário (troco)
     capital_antes: Decimal
+    juros_acumulados_restante: Decimal = Decimal('0')  # Juros em atraso ainda em aberto
 
 
 # ── Empréstimo COMUM ───────────────────────────────────────────────────────
 
 class CalculadoraEmprestimoComum:
     """
-    EMPRÉSTIMO COMUM — sem parcela fixa.
+    EMPRÉSTIMO COMUM — sem parcela fixa. JUROS SIMPLES, SEM capitalização.
 
     Regras:
-    1. Juros simples mensais: J = capital_atual × taxa_mensal
-    2. Pagamento cobre juros PRIMEIRO, depois abate capital.
-    3. Se valor_pago < juros_devidos → diferença capitaliza no saldo.
-    4. capital_atual ≥ 0 sempre (nunca negativo).
+    1. Juros de um ciclo: J = capital_atual × taxa_mensal. Incidem SEMPRE sobre o
+       capital em aberto (que nunca cresce) — nunca sobre juros já lançados.
+    2. Os juros de cada ciclo são LANÇADOS uma única vez por ciclo no acumulador
+       `juros_acumulados` (na criação do empréstimo e a cada vencimento, pelo cron).
+       `juros_acumulados` NÃO rende juros → não existe "juros sobre juros".
+    3. Um pagamento quita primeiro os juros acumulados, depois abate o capital.
+    4. Pagamento insuficiente NÃO aumenta o capital: o que falta apenas permanece
+       em `juros_acumulados` (saldo de juros em atraso).
+    5. capital_atual ≥ 0 sempre.
+
+    Consequência: a dívida total (capital + juros_acumulados) é fixa entre
+    lançamentos de juros. Pagar R$719,99 de uma dívida de R$720 deixa exatamente
+    R$0,01, independentemente de quantos pagamentos parciais forem feitos.
     """
 
     @staticmethod
     def calcular_juros_mes(capital: Decimal, taxa_mensal: Decimal) -> Decimal:
-        """Juros do mês corrente sobre o capital em aberto."""
+        """Juros de um ciclo sobre o capital em aberto (projeção / lançamento)."""
         return _r(capital * taxa_mensal)
 
     @staticmethod
-    def calcular_total_quitacao(capital: Decimal, taxa_mensal: Decimal) -> Decimal:
-        """Valor exato para quitar: capital + juros do mês."""
-        juros = CalculadoraEmprestimoComum.calcular_juros_mes(capital, taxa_mensal)
-        return _r(capital + juros)
+    def calcular_total_quitacao(
+        capital: Decimal, juros_acumulados: Decimal = Decimal('0')
+    ) -> Decimal:
+        """Valor exato para quitar agora: capital + juros já lançados (acumulados)."""
+        return _r(capital + juros_acumulados)
 
     @staticmethod
     def aplicar_pagamento(
         capital_atual: Decimal,
-        taxa_mensal: Decimal,
         valor_pago: Decimal,
+        juros_acumulados: Decimal = Decimal('0'),
     ) -> ResultadoPagamento:
         """
         Aplica um pagamento ao empréstimo e retorna o novo estado.
 
-        Comportamento:
-        - valor_pago cobre juros primeiro.
-        - O excedente abate o capital.
-        - Se valor_pago < juros → diferença é adicionada ao capital (capitalização).
-        - Nunca retorna capital negativo.
+        Ordem de quitação: juros acumulados → capital → excedente.
+        NÃO lança novos juros (isso ocorre na criação e a cada ciclo, pelo cron),
+        portanto o saldo nunca cresce por pagar em partes nem por atraso.
         """
-        juros_devidos = CalculadoraEmprestimoComum.calcular_juros_mes(
-            capital_atual, taxa_mensal
-        )
         capital_antes = capital_atual
+        juros_acumulados = _r(juros_acumulados)
 
-        if valor_pago >= juros_devidos:
-            # Pagamento cobre os juros — abate capital com o restante
-            juros_pagos = juros_devidos
-            capital_abatido = _r(valor_pago - juros_devidos)
-            capital_abatido = min(capital_abatido, capital_atual)
+        if valor_pago >= juros_acumulados:
+            # Cobre todos os juros em aberto — o restante abate o capital
+            juros_pagos = juros_acumulados
+            sobra = _r(valor_pago - juros_acumulados)
+            capital_abatido = min(sobra, capital_atual)
             novo_capital = _r(capital_atual - capital_abatido)
-            excedente = _r(valor_pago - juros_pagos - capital_abatido)
+            excedente = _r(sobra - capital_abatido)
+            novo_juros_acumulados = Decimal('0')
         else:
-            # Pagamento insuficiente para cobrir os juros
-            # Juros não pagos capitalizam no saldo devedor
+            # Pagamento insuficiente para os juros em aberto.
+            # SEM capitalização: o capital permanece intacto e o que falta de
+            # juros continua em juros_acumulados (não vira capital, não rende juros).
             juros_pagos = valor_pago
-            juros_nao_cobertos = _r(juros_devidos - valor_pago)
             capital_abatido = Decimal('0')
-            novo_capital = _r(capital_atual + juros_nao_cobertos)
+            novo_capital = capital_atual
             excedente = Decimal('0')
+            novo_juros_acumulados = _r(juros_acumulados - valor_pago)
 
         return ResultadoPagamento(
             capital_restante=novo_capital,
@@ -111,6 +120,7 @@ class CalculadoraEmprestimoComum:
             capital_pago=capital_abatido,
             excedente=excedente,
             capital_antes=capital_antes,
+            juros_acumulados_restante=novo_juros_acumulados,
         )
 
 

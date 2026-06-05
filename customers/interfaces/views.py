@@ -7,9 +7,10 @@ from customers.infrastructure.models import Cliente
 from customers.application.services import ClienteService
 from customers.interfaces.serializers import ClienteSerializer, ClienteListSerializer
 from core.exceptions import AgiBaseException
+from core.ownership import OwnedViewSetMixin
 
 
-class ClienteViewSet(viewsets.ModelViewSet):
+class ClienteViewSet(OwnedViewSetMixin, viewsets.ModelViewSet):
     """
     CRUD completo de clientes.
     GET    /api/v1/clientes/           → lista

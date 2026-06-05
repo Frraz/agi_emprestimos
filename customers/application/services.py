@@ -28,6 +28,7 @@ class ClienteService:
             raise ClienteJaExisteError(f"CPF já cadastrado: {cpf}")
 
         dados = {**dados, 'cpf': cpf}
+        dados.setdefault('owner', usuario)
         cliente = Cliente.objects.create(**dados)
 
         _registrar_auditoria(cliente, 'create', usuario)

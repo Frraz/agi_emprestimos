@@ -1,10 +1,15 @@
 from decimal import Decimal
 from django.db import models
 from core.models import BaseModel
+from core.ownership import owner_field
 from core.validators import validate_cpf
 
 
 class Cliente(BaseModel):
+
+    # Isolamento por usuário (NULL = legado compartilhado). Ver core/ownership.py.
+    owner = owner_field()
+
 
     CLASSIFICACAO_CHOICES = [
         ('verde', '🟢 Bom Pagador'),

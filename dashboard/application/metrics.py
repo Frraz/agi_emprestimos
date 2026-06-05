@@ -9,15 +9,21 @@ _MESES_PT = [
 ]
 
 
-def calcular_metricas_dashboard() -> dict:
+def calcular_metricas_dashboard(user=None) -> dict:
+    """Métricas do dashboard escopadas ao usuário (isolamento por dono).
+    user=None → varredura global (uso interno/testes)."""
     from loans.infrastructure.models import Emprestimo
     from core.models_config import CapitalOperacional
+    from core.ownership import escopo_opcional
 
-    capital_op = CapitalOperacional.get_instance()
+    capital_op = (
+        CapitalOperacional.get_for_user(user) if user is not None
+        else CapitalOperacional.get_instance()
+    )
 
-    ativos = Emprestimo.objects.ativos()
+    ativos = escopo_opcional(Emprestimo.objects.ativos(), user)
     # Atraso por DATA (independe do cron diário já ter rodado).
-    vencidos = Emprestimo.objects.vencidos()
+    vencidos = escopo_opcional(Emprestimo.objects.vencidos(), user)
 
     # ── Capital ────────────────────────────────────────────────────────────
     capital_emprestado = ativos.aggregate(
@@ -63,7 +69,7 @@ def calcular_metricas_dashboard() -> dict:
     )
 
     # ── Tendência de recebimentos (últimos meses) ──────────────────────────
-    recebimentos_mensais = _calcular_recebimentos_mensais()
+    recebimentos_mensais = _calcular_recebimentos_mensais(user=user)
 
     # ── Ocupação do capital (sem query adicional) ──────────────────────────
     capital_total = capital_op.total_capital
@@ -96,7 +102,7 @@ def calcular_metricas_dashboard() -> dict:
     }
 
 
-def _calcular_recebimentos_mensais(meses: int = 6) -> list:
+def _calcular_recebimentos_mensais(meses: int = 6, user=None) -> list:
     """
     Série dos últimos `meses` meses (incluindo o atual), com total recebido e
     parcela de juros. Meses sem pagamento aparecem zerados, em ordem cronológica.
@@ -105,6 +111,7 @@ def _calcular_recebimentos_mensais(meses: int = 6) -> list:
     from datetime import date
     from payments.infrastructure.models import Pagamento
     from core.utils import arredondar_financeiro
+    from core.ownership import escopo_opcional
 
     hoje = date.today()
 
@@ -122,8 +129,10 @@ def _calcular_recebimentos_mensais(meses: int = 6) -> list:
     inicio = date(seq[0][0], seq[0][1], 1)
 
     agregado = (
-        Pagamento.objects
-        .filter(deleted_at__isnull=True, data_pagamento__gte=inicio)
+        escopo_opcional(
+            Pagamento.objects.filter(deleted_at__isnull=True, data_pagamento__gte=inicio),
+            user,
+        )
         .annotate(mes_ref=TruncMonth('data_pagamento'))
         .values('mes_ref')
         .annotate(total=Sum('valor'), juros=Sum('valor_juros_pagos'))

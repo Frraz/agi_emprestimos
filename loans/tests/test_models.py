@@ -23,7 +23,8 @@ class TestVencidosComum:
         assert emp in Emprestimo.objects.vencidos()
         assert emp.esta_vencido is True
         assert emp.dias_atraso == 1
-        assert emp.valor_em_atraso == emp.capital_atual
+        # Em atraso = dívida total (capital + juros acumulados), não só o capital
+        assert emp.valor_em_atraso == emp.total_quitacao
 
     def test_comum_sem_vencimento_nao_aparece(self, criar_emprestimo):
         from loans.infrastructure.models import Emprestimo

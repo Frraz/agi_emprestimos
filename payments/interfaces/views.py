@@ -2,9 +2,10 @@ from rest_framework import viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from payments.infrastructure.models import Pagamento
 from payments.interfaces.serializers import PagamentoSerializer
+from core.ownership import OwnedViewSetMixin
 
 
-class PagamentoViewSet(viewsets.ReadOnlyModelViewSet):
+class PagamentoViewSet(OwnedViewSetMixin, viewsets.ReadOnlyModelViewSet):
     """
     Pagamentos são imutáveis — apenas leitura via API.
     Registro ocorre via EmprestimoViewSet.pagar().

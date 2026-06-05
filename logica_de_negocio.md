@@ -140,34 +140,49 @@ Exemplo: João paga R$ 600,00
   - No mês seguinte, juros = R$ 500 × 10% = R$ 50,00
 ```
 
-#### Regra de capitalização (pagamento insuficiente)
-```
-Se valor_pago < juros_devidos:
-  juros_não_cobertos = juros_devidos - valor_pago
-  capital_atual = capital_atual + juros_não_cobertos
+#### Regra de juros simples — SEM capitalização (sem juros sobre juros)
 
-Exemplo: juros = R$ 100, cliente paga R$ 30
-  Diferença: R$ 70 é adicionada ao capital
-  Novo capital: R$ 1.000 + R$ 70 = R$ 1.070,00
+> ✅ **Atualizado (junho/2026):** o sistema **não capitaliza** mais. Os juros de
+> cada ciclo são lançados **uma única vez** num acumulador separado
+> (`juros_acumulados`) que **não rende juros**. O `capital_atual` nunca cresce —
+> só diminui com pagamentos. A dívida total é sempre `capital + juros_acumulados`.
+
+```
+Se valor_pago < juros_em_aberto (juros_acumulados):
+  juros_pagos = valor_pago
+  capital_atual permanece INALTERADO          ← nunca aumenta
+  juros_acumulados = juros_acumulados - valor_pago   ← saldo de juros em atraso
+
+Exemplo: juros em aberto = R$ 100, cliente paga R$ 30
+  juros_acumulados passa a R$ 70
+  capital_atual: R$ 1.000 (inalterado) — sem juros sobre juros
 ```
 
-> ⚠️ **Atenção:** A capitalização aumenta a dívida. Usar com consciência.
+**Lançamento dos juros (acúmulo):** o juros de um ciclo (`capital_atual × taxa`)
+é somado a `juros_acumulados` na criação do empréstimo (1º ciclo) e a cada
+vencimento mensal, pelo cron `atualizar_inadimplencia`. Dois meses de atraso de
+um capital de R$ 90 a 10% acumulam **R$ 9 + R$ 9 = R$ 18** (linear), nunca
+R$ 90 × 1,10 × 1,10.
 
 #### Fluxo de aplicação de pagamento
 ```
-1. Calcular juros_devidos = capital_atual × taxa_mensal
-2. Se valor_pago >= juros_devidos:
-     juros_pagos = juros_devidos
-     capital_abatido = min(valor_pago - juros_devidos, capital_atual)
+1. juros_em_aberto = juros_acumulados (juros já lançados, não pagos)
+2. Se valor_pago >= juros_em_aberto:
+     juros_pagos = juros_em_aberto
+     capital_abatido = min(valor_pago - juros_em_aberto, capital_atual)
      novo_capital = capital_atual - capital_abatido
+     novo_juros_acumulados = 0
      excedente = valor_pago - juros_pagos - capital_abatido
-3. Se valor_pago < juros_devidos:
+3. Se valor_pago < juros_em_aberto:
      juros_pagos = valor_pago
-     juros_nao_cobertos = juros_devidos - valor_pago
      capital_abatido = 0
-     novo_capital = capital_atual + juros_nao_cobertos
+     novo_capital = capital_atual              ← inalterado
+     novo_juros_acumulados = juros_em_aberto - valor_pago
 4. Se novo_capital == 0: status → "quitado"
 ```
+
+> Exemplo do caso relatado: capital R$ 600, taxa 20% → juros R$ 120, total
+> R$ 720. Pagando R$ 719,99, o saldo fica **R$ 0,01** (e não R$ 18,01).
 
 ---
 

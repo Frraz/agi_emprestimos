@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
@@ -15,9 +16,9 @@ def _parse_data(valor):
         return None
 
 
-def _montar_semanas(ano: int, mes: int, ref: date):
+def _montar_semanas(ano: int, mes: int, ref: date, user=None):
     """Combina a grade do mês com os eventos em células prontas p/ template."""
-    eventos = CobrancaService.eventos_calendario(ano, mes, ref=ref)
+    eventos = CobrancaService.eventos_calendario(ano, mes, ref=ref, user=user)
     semanas = []
     for semana in CobrancaService.grade_calendario(ano, mes):
         linha = []
@@ -39,7 +40,7 @@ def _contexto_calendario(request, ref: date):
     mes_seguinte = 1 if mes == 12 else mes + 1
     ano_seguinte = ano + 1 if mes == 12 else ano
     return {
-        'semanas': _montar_semanas(ano, mes, ref),
+        'semanas': _montar_semanas(ano, mes, ref, user=request.user),
         'mes_ref': date(ano, mes, 1),
         'nav_anterior': {'ano': ano_anterior, 'mes': mes_anterior},
         'nav_seguinte': {'ano': ano_seguinte, 'mes': mes_seguinte},
@@ -50,10 +51,31 @@ def _contexto_calendario(request, ref: date):
 def cobrancas_index(request):
     hoje = date.today()
     data_especifica = _parse_data(request.GET.get('data'))
+    q = request.GET.get('q', '').strip()
 
     buckets = CobrancaService.vencimentos_por_bucket(
-        ref=hoje, data_especifica=data_especifica
+        ref=hoje, data_especifica=data_especifica, user=request.user
     )
+    por_cliente = CobrancaService.total_atraso_por_cliente(ref=hoje, user=request.user)
+
+    # Busca por nome/CPF do cliente (filtra os baldes e o resumo por cliente)
+    if q:
+        ql = q.lower()
+        def _match(it):
+            cli = it['cliente']
+            return ql in cli.nome.lower() or ql in (cli.cpf or '')
+        for chave, lista in list(buckets.items()):
+            if chave == 'totais':
+                continue
+            buckets[chave] = [it for it in lista if _match(it)]
+        buckets['totais'] = {
+            chave: sum((i['valor'] for i in lista), Decimal('0'))
+            for chave, lista in buckets.items() if chave != 'totais'
+        }
+        por_cliente = [
+            r for r in por_cliente
+            if ql in r['cliente'].nome.lower() or ql in (r['cliente'].cpf or '')
+        ]
 
     # HTMX: clique num dia do calendário → só a lista da data escolhida
     if request.htmx and 'data' in request.GET:
@@ -67,9 +89,10 @@ def cobrancas_index(request):
 
     context = {
         'hoje': hoje,
+        'q': q,
         'buckets': buckets,
         'totais': buckets['totais'],
-        'por_cliente': CobrancaService.total_atraso_por_cliente(ref=hoje),
+        'por_cliente': por_cliente,
     }
     context.update(_contexto_calendario(request, hoje))
     return render(request, 'cobrancas/index.html', context)

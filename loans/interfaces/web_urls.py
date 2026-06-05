@@ -9,4 +9,5 @@ urlpatterns = [
     path('novo/comum/<uuid:cliente_pk>/', web_views.emprestimo_criar_comum, name='criar_comum'),
     path('novo/parcelado/<uuid:cliente_pk>/', web_views.emprestimo_criar_parcelado, name='criar_parcelado'),
     path('<uuid:pk>/pagar/', web_views.emprestimo_pagar, name='pagar'),
+    path('<uuid:pk>/pagar-parcelas/', web_views.emprestimo_pagar_parcelas, name='pagar_parcelas'),
 ]

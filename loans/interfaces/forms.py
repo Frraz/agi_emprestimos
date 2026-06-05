@@ -35,7 +35,8 @@ class EmprestimoComumForm(forms.Form):
 
     def clean_taxa_mensal(self):
         taxa = self.cleaned_data['taxa_mensal']
-        if taxa <= 0 or taxa >= 100:
+        # Taxa 0% é permitida (empréstimo sem juros).
+        if taxa < 0 or taxa >= 100:
             raise forms.ValidationError('Taxa deve estar entre 0% e 100%.')
         return taxa / Decimal('100')
 
@@ -107,7 +108,8 @@ class EmprestimoParceladoForm(forms.Form):
 
     def clean_taxa_mensal(self):
         taxa = self.cleaned_data['taxa_mensal']
-        if taxa <= 0 or taxa >= 100:
+        # Taxa 0% é permitida (empréstimo sem juros).
+        if taxa < 0 or taxa >= 100:
             raise forms.ValidationError('Taxa deve estar entre 0% e 100%.')
         return taxa / Decimal('100')
 

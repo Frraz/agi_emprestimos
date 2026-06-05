@@ -7,6 +7,14 @@
 
 {% block content %}
 
+{# Busca por cliente #}
+<form method="get" class="mb-4">
+  <input type="text" name="q" value="{{ q }}"
+         placeholder="Buscar cobrança por nome ou CPF do cliente..."
+         class="input py-2 w-full max-w-md"
+         onkeydown="if(event.key==='Enter'){this.form.submit();}">
+</form>
+
 {# KPIs por balde #}
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
   <div class="card p-4 border-l-4 border-red-400">

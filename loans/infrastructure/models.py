@@ -5,6 +5,7 @@ from datetime import date
 from decimal import Decimal
 from django.db import models
 from core.models import BaseModel
+from core.ownership import owner_field
 from core.validators import validate_taxa_juros, validate_capital_positivo
 
 
@@ -13,6 +14,11 @@ class EmprestimoQuerySet(models.QuerySet):
     Espelha, no ORM, os predicados de atraso definidos em
     loans.domain.calculators.CalculadoraAtraso — fonte única da verdade.
     """
+
+    def for_user(self, user):
+        """Restringe ao dono + legado (owner NULL). Ver core/ownership.py."""
+        from core.ownership import filtrar_por_usuario
+        return filtrar_por_usuario(self, user)
 
     def ativos(self):
         return self.filter(
@@ -80,6 +86,8 @@ class Emprestimo(BaseModel):
         on_delete=models.PROTECT,
         related_name='emprestimos_registrados',
     )
+    # Isolamento por usuário (NULL = legado compartilhado). Ver core/ownership.py.
+    owner = owner_field()
 
     # ── Tipo ───────────────────────────────────────────────────────────────
     tipo = models.CharField(max_length=15, choices=TIPO_CHOICES, db_index=True)
@@ -101,6 +109,20 @@ class Emprestimo(BaseModel):
         max_digits=8, decimal_places=6,
         validators=[validate_taxa_juros],
         help_text='Ex: 0.050000 = 5,00% ao mês',
+    )
+    juros_acumulados = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0'),
+        help_text=(
+            'Juros já lançados e ainda em aberto (empréstimo comum). '
+            'NÃO rende juros — sem capitalização (juros sobre juros).'
+        ),
+    )
+    data_ultimo_acumulo = models.DateField(
+        null=True, blank=True,
+        help_text=(
+            'Data do último ciclo de juros lançado em juros_acumulados. '
+            'Controla o acúmulo idempotente feito pelo cron.'
+        ),
     )
 
     # ── Parcelamento ───────────────────────────────────────────────────────
@@ -166,10 +188,10 @@ class Emprestimo(BaseModel):
 
     @property
     def total_quitacao(self) -> Decimal:
-        """Valor para quitar hoje: capital + juros do mês (empréstimo comum)."""
+        """Valor para quitar hoje: capital + juros acumulados (empréstimo comum)."""
         from loans.domain.calculators import CalculadoraEmprestimoComum
         return CalculadoraEmprestimoComum.calcular_total_quitacao(
-            self.capital_atual, self.taxa_juros_mensal
+            self.capital_atual, self.juros_acumulados
         )
 
     @property
@@ -210,7 +232,7 @@ class Emprestimo(BaseModel):
         valor em aberto das parcelas vencidas.
         """
         if self.tipo == 'comum':
-            return self.capital_atual if self.esta_vencido else Decimal('0')
+            return self.total_quitacao if self.esta_vencido else Decimal('0')
         if self.tipo == 'parcelado':
             return sum(
                 (p.valor_em_aberto for p in self.parcelas.all() if p.esta_atrasada),

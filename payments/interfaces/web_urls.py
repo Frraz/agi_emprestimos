@@ -5,4 +5,5 @@ app_name = 'web_payments'
 
 urlpatterns = [
     path('', web_views.pagamento_list, name='list'),
+    path('<uuid:pk>/editar/', web_views.pagamento_editar, name='editar'),
 ]

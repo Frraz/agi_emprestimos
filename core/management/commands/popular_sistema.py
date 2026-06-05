@@ -274,6 +274,7 @@ class Command(BaseCommand):
                 facebook = f"facebook.com/{nome_p.lower()}.{sobrenome.split()[0].lower()}"
 
             cliente = Cliente.objects.create(
+                owner=usuario,
                 nome=nome,
                 cpf=cpf,
                 data_nascimento=data_nasc,
@@ -442,9 +443,19 @@ class Command(BaseCommand):
 
             try:
                 from loans.domain.calculators import CalculadoraEmprestimoComum
-                juros = CalculadoraEmprestimoComum.calcular_juros_mes(
-                    emp.capital_atual, emp.taxa_juros_mensal
-                )
+                # Lança o juros do ciclo em juros_acumulados (mimetiza o cron).
+                # O 1º ciclo já foi lançado na criação do empréstimo.
+                if mes > 0:
+                    juros_ciclo = CalculadoraEmprestimoComum.calcular_juros_mes(
+                        emp.capital_atual, emp.taxa_juros_mensal
+                    )
+                    emp.juros_acumulados = emp.juros_acumulados + juros_ciclo
+                    emp.data_ultimo_acumulo = data_pag
+                    emp.save(update_fields=[
+                        'juros_acumulados', 'data_ultimo_acumulo', 'updated_at'
+                    ])
+
+                juros = emp.juros_acumulados
                 total = emp.capital_atual + juros
 
                 if tipo_pag == 'quitar' and total <= Decimal('3000'):
@@ -521,6 +532,7 @@ class Command(BaseCommand):
                     capital_antes=parcela.saldo_devedor_antes,
                     capital_depois=parcela.saldo_devedor_depois,
                     registrado_por=usuario,
+                    owner=usuario,
                 )
                 parcela.valor_pago = parcela.valor_parcela
                 parcela.status = 'pago'

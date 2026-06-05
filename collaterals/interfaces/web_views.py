@@ -3,11 +3,15 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages as flash
 from collaterals.infrastructure.models import Garantia, DocumentoGarantia
 from loans.infrastructure.models import Emprestimo
+from core.ownership import filtrar_por_usuario
 
 
 @login_required
 def garantia_create(request, emprestimo_pk):
-    emp = get_object_or_404(Emprestimo, pk=emprestimo_pk, deleted_at__isnull=True)
+    emp = get_object_or_404(
+        filtrar_por_usuario(Emprestimo.objects.filter(deleted_at__isnull=True), request.user),
+        pk=emprestimo_pk,
+    )
 
     if request.method == 'POST':
         tipo = request.POST.get('tipo')
@@ -45,6 +49,7 @@ def garantia_create(request, emprestimo_pk):
             valor_estimado=valor,
             percentual_recuperacao=percentual,
             detalhes=detalhes,
+            owner=emp.owner or request.user,
         )
 
         # Upload de documentos
@@ -66,7 +71,10 @@ def garantia_create(request, emprestimo_pk):
 
 @login_required
 def garantia_delete(request, pk):
-    garantia = get_object_or_404(Garantia, pk=pk, deleted_at__isnull=True)
+    garantia = get_object_or_404(
+        filtrar_por_usuario(Garantia.objects.filter(deleted_at__isnull=True), request.user),
+        pk=pk,
+    )
     emp_id = garantia.emprestimo.id
     if request.method == 'POST':
         garantia.soft_delete()

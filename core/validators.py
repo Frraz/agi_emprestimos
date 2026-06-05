@@ -14,9 +14,10 @@ def validate_cpf(value: str):
 
 
 def validate_taxa_juros(value):
-    """Taxa deve estar entre 0 e 1 (0% a 100%)."""
+    """Taxa deve estar entre 0 (inclusive) e 1 (exclusivo). Ex: 0.05 = 5%.
+    Taxa 0 é permitida (empréstimo sem juros)."""
     from decimal import Decimal
-    if value <= Decimal('0') or value >= Decimal('1'):
+    if value < Decimal('0') or value >= Decimal('1'):
         raise ValidationError(
             'Taxa de juros deve estar entre 0 e 1. Ex: 0.05 para 5%.'
         )

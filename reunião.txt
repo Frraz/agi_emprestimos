@@ -1,0 +1,162 @@
+Tu, pode falar. Tá, tá. Aqui em pagamentos, eu registrei o pagamento dessa Taís aqui, tá ligado? Aqui, ó. Eu peguei o pagamento, aqui tá sonhando capital mais juros, bacana.
+
+Capital inicial foi 600, só que a taxa de juros foi 20%, então 20% de 600 é equivalente a 120 reais, não é? Pois é. Esse total pago aqui tá errado. Eu vou recadastrar os clientes depois, porque era... É porque tá faltando... Oxi, tá faltando... Eu não sei porque, mas tá faltando 18, sendo que era pra morrer os 120. Então, em teoria, era pra tá faltando um centavo só aqui, mas não sei porque esse um centavo, sendo que tá errado esse bagulho, tá ligado? Ó, juros no capital permanente, esse negócio eu não entendi.
+
+Então, no caso aí, tipo, ela pegou 600 com a taxa de juros 20% ao mês, aí pagou 629,99 e era pra tá faltando um centavo, só que tá com saldo devidor de 18 reais e um centavo, né? É. Só que ela não pagou 629. Primeiro ela pagou 400, só que não tinha opção de colocar pago ainda, tá ligado? Eu colocava, mas não ia. O boto foi a que apareceu a opção e eu só apertei e ficou esse valor cravado, tá ligado? Entendi.
+
+E é bom que tem opção de editar os pagamentos, né? Tem. Cadê? O que que tu acha disso? De a gente colocar uma opção pra editar os pagamentos, tipo aquele slide que tu já fez, ó. Não, deixa eu silenciar esse slide aqui. Tá, silenciei.
+
+Pois é, mano, eu tô pensando tipo assim, esses bagulho que precisa de uma... que precisa de uma... Como é que eu posso dizer? Que tipo assim, ah, editar pagamento, essas coisas de mais complexa e rigorosa. Não, acho que não precisa botar a senha não, pra editar pagamento, ninguém vai entender. É, tipo, cada um vai ter seu usuário, né? É. Cada um vai ter seu usuário.
+
+Sim, sim. Só que eu não entendi. No momento, o sistema ele funciona assim, tem um usuário, se eu criar um outro usuário aí, o cara vai acessar os mesmos dados.
+
+Aí, no futuro, a gente vai deixar cada usuário com seus dados próprios, né? Ah, então, aquele login lá, ele vai acessar os meus dados aqui? Sim. Ah, não, então deixa quieto, vou passar pra ele lá. A gente mantém um sigilo, tá ligado? Sim, tu quer que eu já faça essa alteração pra cada usuário não ter acesso aos dados dos outros usuários? Cada usuário, tipo, vai ter seu próprio sistema lá e não vai misturar os dados? É só as trancas baixinhas isoladas, que é assim, mano.
+
+É, tá. Então a gente vai fazer isso como prioridade por enquanto. Prioridade por enquanto.
+
+Exato. Mano, eu tô meio lento que eu tô gripado pra caralho, mano. Mas, tipo assim, tem um bagulho aqui que não tá constando que é, tipo assim, como é que eu posso te dizer? É esse aqui, mano.
+
+Pagamentos. Essa menina aqui, ela já quitou tudo, tá ligado? Deixa eu, eu vou clicar nesse vídeo aqui, ó. Clica lá no nome dela pra ver. Ah, cliquei aqui no nome dela, vai.
+
+Ó, é esse 18, mano, eu não sei de onde que apareceu essa vintagem aqui, tá ligado? Sim. Deixa eu ver, 10% de 90 ainda é 9. Então, como ela tava provavelmente aqui, deve ser 2 meses atrasados, né? Mais 1% que foi cadastrado no último pagamento. 2 meses atrasados é 10%.
+
+De 90 é 9. 9 vezes 2 meses atrasados 18. Provavelmente o sistema tá calculando os juros sobre juros, tá ligado? Sim. Então, essa matemática aqui que não tá batendo, tá ligado? Ela já quitou.
+
+Aqui não era pra ter esses juros ainda aqui. Sim. Deixa eu ver.
+
+E os clientes aqui, é tipo assim, eu tô te perguntando porque eu não sei. Por que que você tá aparecendo esses clientes aqui, mano? Tem mais? Não, tem um monte aqui. Quer dizer, tem esse, tem essa, essa aqui não chegou a data ainda, mas tem esse aqui.
+
+Pera aí, onde é que tava lá na outra tela mesmo? Cobrações. Pagamentos. Ah, é porque, pera aí, mas todos tem pagamento pra ser... Não, esses aí são os pagamentos, pô.
+
+Tipo assim, tu registrou o pagamento... Ah, você já registrou pagado, né? É, aham. Você acaba onde tu vai colocar os pagamentos de cada um deles, entendeu? Isso aqui depois de um tempo, mano, quando tiver, sei lá, uns 200 pagamentos no mês, não fica muito pesado, não? Não. Ah, então, sei lá.
+
+Tipo assim, a gente pode colocar filtros aí nessa aba de pagamentos, a gente pode colocar filtros pra filtrar por cliente, por período, sabe? Pra ficar mais organizado. E dividir também em várias telas, tipo paginação, sabe? A gente coloca lá, no máximo, 30 linhas de pagamento por página. Aí, se tiver, tipo, 60, vai ter duas páginas.
+
+A gente pode fazer esse tipo de situação aí pra melhorar a visualização na aba de pagamentos. Ou procurar o nome, né? É, buscar também pelo nome, do cliente. A gente pode fazer essa melhoria aí no... Na aba de pagamentos.
+
+Essa parte, essa, isso aí agora, a gente tem que fazer essa porra aí. Isso aí já... Matou dois clientes com uma caixa alada só. Não só na aba de pagamentos, né? A gente poderia ter isso em todas as abas.
+
+Aba de cliente, todas as abas. Filtros e busca aí. Essas paradas de paginação.
+
+Deixa eu ver. Acho que vai precisar logar aqui. Aqui, eu tô... Eu tava usando ela aqui, mano.
+
+Talvez eu receba um patrocínio. ... ... ... Tá. ... ... Esse aqui é uma matemática que eu tava fazendo.
+
+Eu treinei esse chat aqui só pra mexer com meus bagulho, tá ligado? Por enquanto. Por exemplo. É claro que a gente não vai incluir isso no sistema, né, mano? É assim, só vou te dar um... Não tem, tá ligado? ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... ... Esse aqui não tá aparecendo.
+
+Tu quer que ele coloque, tipo, tu entrou na aba de empréstimos de um cliente específico, aí tem a tabela de parcelas, tu quer que ele coloque, tipo, um botão pra pagar aquela parcela, é? Não, é porque eu não sei onde é que bota pra pagar essa parcela dele. Sim. Vai aí na aba de pagamento, bora ver se é por lá.
+
+Coloca lá registrar pagamento. Registrar pagamento, na aba de pagamento aqui. Rapaz, eu sou muito bom, mano.
+
+Aí também nessa aba de... Eu pensei assim, cobranças, né, pra cobrar, tá ligado? Sim. Na aba de pagamento aí, em registrar pagamento, a gente coloca também os filtros lá em cima de cliente, pra buscar pro cliente, entendeu? Esse aqui eu gostei, mano. Esse aqui eu gostei, ó. Sim.
+
+Esse aqui eu gostei, achei da hora esse aí. Ó, organiza pra lá. Deixa eu ver nesse aqui, que esse cabuco tá me preocupando.
+
+Esse cabuco quer tirar meus cabelos da cabeça. Pior que não tá aparecendo aí, né? Não... Tá, não, tá não. Ele encaminha pro mesmo lugar.
+
+Pagamentos, registrar pagamento. Aí esse aqui é parcelado. Esse aqui são todos sem parcela fixa.
+
+Esse aqui é um parcela fixa, um dos únicos. Tem ele e tem esse cara aqui, ó. Não, eu não adicionei ele aqui, não. Não, eu só tenho dois caras fixos, só.
+
+É que não tá aparecendo, mano. R$2.750 atrás, mano. É, tipo, pra quando é um pagamento único, até que aparece lá, né, pra fazer o pagamento.
+
+Só que quando a gente vai lá em pagamentos e é um empréstimo parcelado, a gente tem que registrar pagamento em um parcelado, não tá aparecendo pra fazer o pagamento. De fato, é um problema, né? Aí é bom, tipo, aparecer essa tela aí com a tabela de parcelas e a gente selecionar, né? Tipo, qual parcela a gente quer pagar, então selecionar mais de uma, né? Isso, ou por exemplo, deixa eu abrir meu celular aqui pra me dar uma olhada certinho, mano. Por exemplo, é... Na verdade, não, eu tenho três caras que tá com empréstimo de parcela fixa.
+
+Ó, esse cara aqui, ele pegou empréstimo comigo. E no mês 1 aqui, era o primeiro pagamento. Só que aí, desse dinheiro aqui, a gente postergou pro próximo mês e na época eu não tava colocando no último ainda, entendeu? E pra ele eu não ia colocar não, mas coisas à parte.
+
+Aí, bacana, né? Esse primeiro mês aqui pulou. Aí, o que que ele fez? Ele pagou 600 reais aqui, tá ligado? Depois pagou 600 reais aqui, na terceira parcela. E aí, assim, eu debitei dessa aqui, eu escolhi por debitar 100 reais dessa.
+
+Porque ele pagou 600 aqui, ou seja, 600 aqui, 600 aqui, 50 a mais em cada, correto? Aham. Essa daqui, do mês 4, ele pagou. E a do mês 5, ele pagou.
+
+Ele pagou. Então, aqui, no total, vamos supor que ele pagou todas, inclusive essa daqui, né? Vezes 5. É, realmente, tá 2.750, não, aqui tá certo, né? Deixa eu substituir de novo. Deixa eu substituir de novo.
+
+Aí, na matemática, provavelmente a gente colocaria... É, essa aqui que ficou com 450, né? Porque ele pagou 2.600 dentro dessa daqui, por exemplo. A gente jogaria ela para o mês 12. E aí, entendeu? Jogaria ela para trás.
+
+Entendeu? Tipo, tá falando que quando ele paga um valor a mais que a parcela. Tipo, a parcela 1, que é 750 reais, ele pagou 650, né? Aham. Aí, nesse caso, ele pagou uma parcela com salda a mais.
+
+Ou então a gente pode... Ou então eu posso já começar a acrescentar o pagamento adiantado nessa daqui, né? É, na última parcela dele que tá em aberto. Tipo, quando o cara paga uma... Vamos supor que... Tem a parcela 1, 2, 3, 4, 5, que tá em aberto aí, né? Vamos supor que na parcela 1 ele pagou 50 reais a mais. Pagou 600, que é 550 valor.
+
+Aí a gente pega e já desconta da próxima parcela esses 50 reais. Aí, essa parcela 2, ao invés de ser 550, que é o valor normal dela, ia ser 500 só. Correto.
+
+Correto. Só que o sistema tem que ser inteligente pra compreender isso e mostrar. Tipo, na hora que tu for cadastrar o pagamento da parcela 1 e colocar o valor a mais do que ele deve na parcela 1, mostrar uma telinha.
+
+Ó, o cliente tá pagando mais do que ele deve nesse mês, portanto na parcela tanto vai ser descontado o valor e vai ficar tanto pra ele pagar na próxima parcela, né? É bom ter uma telinha, um feedback visual informando toda a movimentação. Tu tá anotando essas paradas? Tô, tô. Ah, tá.
+
+É porque tu falou aí, tipo assim, do modo que você falou, parecia que você tava checando anotação. Não, não, eu tô anotando. É. Aí, basicamente... Assim, nessa tela aqui é isso, né? Aqui tá certo, não tá juros sobre juros, né? É realmente o valor dessas parcelas aqui, né? É o valor dessas parcelas aqui.
+
+E deixa eu ver aqui, só um negócio. Extrapagamento. Aí esse aqui eu não entendi, né? Porque eu já botei ele como pago, tá ligado? Eu quero deletar esse empréstimo aqui depois pra não colocar os dados aqui na dashboard.
+
+Porque esse cara aqui, eu quero colocar o empréstimo de 0%, tá vendo? Só pra mim ter uma contabilidade mesmo, sabe? Sim. É assim, só pra ficar a critério, sabe? A gente pode adicionar o empréstimo a 0%, né? Que não vai ter nada de juros, né? Exato. Esse aqui eu não consegui, eu tive que adicionar 0.10 nele.
+
+Ele pagou 100, só que ainda tá meio bugadinho. Começou aqui, tá vendo que tá 20 aqui? Sim. É porque começou a contar os juros.
+
+Sim. Ele pediu pra gente adicionar uma aba ali, abaixo de pagamentos, na sidebar, uma aba chamada extrato, onde vai ter vários relatórios PDF que o cliente pode exportar. Por exemplo, vamos supor que tem um cara usando o sistema e ele fala, não, não quero mais usar o sistema não, mas eu quero meus dados.
+
+Ele vai lá e clica e ele consegue exportar tudo pra vários PDFs, tipo, exportar todos os clientes, todos os empréstimos, todas as cobranças, tudo que tem aberto, sabe? Tipo, tem uma parte que ele consegue exportar separado e tem uma parte que ele exporta um PDFzão completo com todos os dados dele que estão cadastrados no sistema. O que que tu acha? Peraí, peraí, peraí, peraí. Ficou muito complexo pra minha cabeça, hein? Repete de novo.
+
+A gente pode adicionar uma aba chamada extrato, ali abaixo de pagamentos, na sidebar, que é o menu lateral. E essa aba de extrato, a gente vai ter a possibilidade de exportar vários PDFs que são relatórios, tipo um PDF de todos os clientes, listando todos os clientes, com os dados deles, sabe? Aí um PDF que vai listar todos os empréstimos, tudo que já foi pago, tudo que tá em aberto. A gente tem uma aba só pra fazer exportação pra PDF, ou então pra planilhas, de todos os dados cadastrados no sistema.
+
+Tipo aquele backup que a gente começou. É, por acaso o cara tá usando o sistema e, sei lá, precisa sumir no mundo, só que ele precisa dos dados dele. A gente pega e dá essa possibilidade.
+
+Tipo esse aqui, ó. Só pra não tirar uma dúvida, tipo essa parada aqui, né? É. Inclusive é até um nome melhor. A gente pode chamar o empréstimo de extrato, aquela aba, e a gente chama de backup. Backup, perfeito.
+
+Aí a gente coloca essas mesmas opções, o que tá aí nesse negócio que a gente tá vendo, pra baixar em JSON, ou então em CSV, que é planilha, ou então em PDF. A gente coloca essa aba aí pro cara conseguir baixar todos os dados dele do sistema. Pode calar.
+
+Só tô vendo o retalho do print aqui pra te mandar isso depois. Meu computador não tem essas teclas não, mano. Mais uma dúvida, cara, a respeito daquele... do capital que a gente configura.
+
+Tu quer que esse capital, tipo assim, vamos supor que eu adicionei 10 mil e conforme eu vou cadastrando os empréstimos, vai subtraindo esses 10 mil. Aí meio que esse saldo capital fica vinculado aos empréstimos. Aí conforme tu recebe, vai retornando pra conta já com juros, o saldo capital.
+
+Ou então é um valor que fica separado dos empréstimos. Tipo, tu tem lá 10 mil, tu cadastra 10 mil de empréstimos, só que continua lá o saldo capital 10 mil. Tu quer que funcione como esse saldo capital? Eu gostei desse jeito que você falou, porque eu ainda não olhei direito na minha cabecinha, tá ligado? É, tipo, a gente pode colocar vinculado a outro empréstimo, né? Tipo, que daí vamos supor que eu tenha 10 mil, que eu falei assim, não, eu vou pegar esses 10 mil e vou emprestar pro pessoal aí.
+
+Aí o saldo capital já fica vinculado totalmente às movimentações que eu faço no sistema. E conforme eu recebo, atualiza lá também o saldo capital. Isso, isso.
+
+É tipo assim, essa parte... É, não, não, sim, sim, sim. Aí conforme eu empresto, aí subtrai. Aí às vezes pode ser que fica até negativo, mas é uma possibilidade, né? Pode acontecer.
+
+É, sim. Porque, tipo assim, geralmente quando a gente começa a emprestar, a gente começa que o dinheiro do nosso busca é fruto do nosso trabalho, né? Aí depois que esse dinheiro vira uma bola de neve, ela começa a crescer, crescer, crescer, ela mesmo se paga por mês pra poder gerar novos empréstimos, assim, consecutivamente, tá ligado? Mas, por exemplo, Arley, na minha situação hoje em dia, acontece que provavelmente eu vou receber um financiamento. Vou receber um financiamento de um colaborador.
+
+Pra esse rapaz, é tanto que eu queria colocar umas tags, tags, pra alguns clientes, sabe? Tags mesmo. Pra gente conseguir, tipo assim, ah, inadimplência, aí eu boto inadimplência certinho aqui pra tais clientes, entendeu? Tag clientes, empréstimos, alguma coisa, tá ligado? Tipo o WhatsApp Business, que tem aquelas tagzinhas. Mas tu quer que essas tags sejam automáticas ou tu cadastra as tags e cadastra e adiciona ela nos clientes? Tipo assim, inadimplência já coloca todos os que estão com saldo em atraso, é automático? É que tu quer essas tags? Não, as tags que eu tô falando, é tipo assim, essas tags que eu tô falando agora.
+
+Essas tags de compagador, disso, daquilo, eu quero deixar uma opção pra mim mesmo adicionar. Eu quero que por enquanto seja algo assim, manual. Só que essa tag que eu tô te falando, é tipo assim, ah, cliente, caixa, não é caixa 2 do caixa de roubar dinheiro, tá ligado? Mas assim, tem o caixa 1 que é o meu dinheiro, tá ligado? E tem o caixa 2, o que é esse caixa 2? É um financiamento que eu realmente vou receber de um amigo meu, entendeu? Só que a diferença desse dinheiro, é que o juros vai ser um pouquinho maior, pouca coisa, 5% a mais só.
+
+E pra mim fazer esse tipo de empréstimo, vai ser a base de penhora, puro, nu e cru, tá ligado? A gente pode fazer então, assim, a gente cadastra vários, vários caixas ali na configuração capital. Vários, meio que, caixas mesmo, e cada caixa vai ter um saldo. E esse saldo, na hora que tu vai cadastrar um novo empréstimo, tu consegue marcar lá de onde é que vai sair aquele saldo.
+
+Se é do caixa 1, caixa 2, caixa 3, etc. Isso, só que por enquanto essa aí é uma opção pra mim. Eu acho que o outro pessoal, o pessoal que vai usar, eles não vão ter essa necessidade, tá ligado? Porque isso aí realmente é uma bolada alta que eu vou pegar de um parceiro meu, tá ligado? Sim, só que aí a parte que for do juros, como o juros a gente cadastra pra cada cliente, pode continuar assim, né, sendo manual.
+
+Como assim? Porque o juros, por exemplo, o juros tu adiciona lá na hora que tu tá cadastrando um empréstimo, tu adiciona quanto juros. Ah sim, sim, manual, manual. Aí continua sendo manual, né? Manual, uhum.
+
+Uhum, certo. Aí continua sendo manual. Sobre a parada do caixa lá que a gente tá falando, bicho, tipo assim, é bem chato e complicado duplicar o sistema com duas funções diferentes, sabe? Até que dá pra fazer, mas é bem difícil.
+
+Tu quer que a gente adicione esse caixa ou deixa sem por enquanto e depois a gente vê se adiciona? Melhor não, vamos deixar esse caixa de mão e para administrar esse dinheiro eu crio outra conta, melhor. Eu crio outro celular, melhor. Exatamente, como vai ter os lados separados.
+
+Então eu viajei aqui, eu viajei nesse negócio aí porque seria que se eu sistema dentro do sistema não dá certo não. É, sim. E também que você falou, eu crio outra conta aqui e deixo essa conta pra administrar esse dinheiro e separo uma conta no meu celular pra poder mexer nesse dinheiro, melhor.
+
+É, verdade. Melhor. É pra fugir de burocracia já, né? Você anotou esse negócio de backup aqui, mano? Anotei, anotei, pode deixar.
+
+Tem as notificações, eu ainda não entendi essa porra aqui, isso aqui dá notificação, notificação no zap, ó. Uhum. Você lembra qual foi a plataforma que eu paguei? Foi o Cobran, não foi? Acho que não lembro, minha memória tá ruim. Deixa eu ver aqui, não foi não, que tá fazendo upgrade.
+
+Será que foi a CXunes? É, eu acho que foi essa aí mesmo. Não, eu paguei a mais bosta. É, eu paguei a mais bosta.
+
+Deixa aqui em português, para eu atualizar, não clicar, tá. É uma criatura sensual. E olha como é que ela é simples, mano.
+
+Uhum. Relatórios, amizade, contrato, VJXXXX. O cara tá tudo colocando em breve ainda.
+
+É, a nossa já tá na frente dessa aí, praticamente. Uhum. Com certeza, a dele é bem simplesinha, né? Notificação por WhatsApp, cara, é... Fica meio complicado por enquanto, porque tem que pagar, sabe? A gente pode fazer notificação por e-mail, dá pra fazer de graça por enquanto.
+
+Bacana, é bom que a gente, quando tiver bem da hora o bagulho, a gente coloca lá em breve, tá ligado? É. É, mas se tu quiser a gente já coloca notificação por e-mail, tu quer? Tá, então a gente vai adicionar também notificações por e-mail. Aí como que a gente vai gerenciar essas notificações? Tipo assim, tu quer que funcione como? Chegue um dia antes da data do vencimento dos empréstimos, tu quer que funcione como essas notificações? Mano, vamos deixar anotado pra colocar no sistema, só que vamos deixar em aberta ainda. Vamos deixar em aberta ainda.
+
+Tá, beleza. Porque... Sei lá, mano, eu acho que o cara tem que ser muito preguiçoso pra não olhar no sistema, tá ligado? Olhar dashboard e ver inadimplência, tá ligado? Sim, sim. Ou... Sei lá, aqui embaixo mostra, tá ligado? É, deixa eu ver.
+
+Se tu quiser, eu adiciono uma abinha, a gente vai adicionar já aquela aba do backup, eu adiciono mais uma notificação e lá vai ter, tipo, notificar um dia antes, notificar três dias antes, uma semana antes, uma aba bem simples pra o cara ativar ou desativar as notificações, sabe? Uma coisa bem simples, só pra deixar já funcionando no sistema essa parada de notificação. É, sim. Aí depois ele se pensa melhor como gerenciar isso.
+
+Beleza, pode ser. Pode ser. E... É porque no sistema aqui, pra mim tem uma noçãozinha, uma noção boa, na verdade, eu tinha que ajustar essa questão do pagamento aqui pra mim ter uma noção da dashboard, tá ligado? Mas se eu não me engano... Ah não, eu te mandei.
+
+Eu te mandei. Eu... Deixa eu ver aqui, capital total da operação. Essa... Agora, é porque a gente não concluiu, mano, aquela parte lá porque eu viajei.
+
+Essa parte do capital... O que é essa parte de capital em operação, mano? É aquele caixa que a gente tava falando, que eu perguntei se... esse capital vai ser vinculado aos empréstimos ou não. Tipo, clica lá em configuração, configurar capital lá no canto superior direito. Aí tu consegue mudar isso, entendeu? A gente vai melhorar essa parte aí pra tu colocar o saldo que tu tem atualmente.
+
+E depois a gente vai... Eu vou adicionar um botão pra tu adicionar crédito, então... Fazer retirada, pra tu ir controlando o saldo do sistema, sabe? Porque atualmente só tem como colocar o saldo total, mas não tem como, por exemplo, se tu quiser adicionar mais 100 reais. Aí tem que ficar calculando. Ele gravou aqui em 2000, né? Aí eu vou melhorar essa aba aí todinha de capital do sistema pra ficar algo melhor e mais premium, mais elegante.
+
+E mais funcional também. Olha que sonho! Entendi. Mas essa parte aqui, mano, capital total da operação, eu creio que ela pode ser organizada assim, né? Abaixo da... Isso aqui é uma empresa, mano.
+
+
+fim da gravação

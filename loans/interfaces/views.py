@@ -11,9 +11,10 @@ from loans.interfaces.serializers import (
     PagamentoComumSerializer,
 )
 from core.exceptions import AgiBaseException
+from core.ownership import OwnedViewSetMixin
 
 
-class EmprestimoViewSet(viewsets.ReadOnlyModelViewSet):
+class EmprestimoViewSet(OwnedViewSetMixin, viewsets.ReadOnlyModelViewSet):
     """
     Leitura via ViewSet padrão.
     Criação via actions customizadas (separa entrada por tipo).

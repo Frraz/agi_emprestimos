@@ -23,7 +23,8 @@ def test_comum_vencido_reflete_no_dashboard(criar_emprestimo):
 
     assert m['inadimplentes'] == 1
     assert m['taxa_inadimplencia'] > 0
-    assert m['valor_em_atraso'] == Decimal('1000')
+    # Dívida total em atraso = capital 1000 + juros do ciclo (10% = 100)
+    assert m['valor_em_atraso'] == Decimal('1100.00')
     assert m['qtd_em_atraso'] == 1
 
 

@@ -5,9 +5,14 @@ Usadas para calcular exposição real e perda ajustada.
 from decimal import Decimal
 from django.db import models
 from core.models import BaseModel
+from core.ownership import owner_field
 
 
 class Garantia(BaseModel):
+
+    # Isolamento por usuário (NULL = legado compartilhado). Ver core/ownership.py.
+    owner = owner_field()
+
 
     TIPO_CHOICES = [
         ('veiculo', 'Veículo (Carro/Moto)'),

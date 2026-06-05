@@ -10,9 +10,10 @@ from dashboard.application.metrics import calcular_metricas_dashboard
 @login_required
 def dashboard_view(request):
     from loans.infrastructure.models import Emprestimo
-    metricas = calcular_metricas_dashboard()
-    emprestimos_recentes = Emprestimo.objects.filter(
-        deleted_at__isnull=True
+    from core.ownership import filtrar_por_usuario
+    metricas = calcular_metricas_dashboard(user=request.user)
+    emprestimos_recentes = filtrar_por_usuario(
+        Emprestimo.objects.filter(deleted_at__isnull=True), request.user
     ).select_related('cliente').order_by('-created_at')[:8]
     return render(request, 'dashboard/index.html', {
         'metricas': metricas,
@@ -26,7 +27,7 @@ def capital_config(request):
     from core.models_config import CapitalOperacional
     from decimal import Decimal
 
-    config = CapitalOperacional.get_instance()
+    config = CapitalOperacional.get_for_user(request.user)
 
     if request.method == 'POST':
         try:
@@ -47,4 +48,4 @@ def capital_config(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def metricas_api(request):
-    return Response(calcular_metricas_dashboard())
+    return Response(calcular_metricas_dashboard(user=request.user))

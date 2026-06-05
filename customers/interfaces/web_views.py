@@ -7,6 +7,7 @@ from django.db.models import Q
 from customers.infrastructure.models import Cliente
 from customers.interfaces.forms import ClienteForm
 from core.exceptions import AgiBaseException
+from core.ownership import filtrar_por_usuario
 import urllib.request
 import json
 
@@ -16,7 +17,9 @@ def cliente_list(request):
     q = request.GET.get('q', '').strip()
     classificacao = request.GET.get('classificacao', '')
 
-    qs = Cliente.objects.filter(deleted_at__isnull=True).order_by('nome')
+    qs = filtrar_por_usuario(
+        Cliente.objects.filter(deleted_at__isnull=True), request.user
+    ).order_by('nome')
     if q:
         qs = qs.filter(
             Q(nome__icontains=q) | Q(cpf__icontains=q) | Q(telefone_principal__icontains=q)
@@ -24,7 +27,7 @@ def cliente_list(request):
     if classificacao:
         qs = qs.filter(classificacao=classificacao)
 
-    paginator = Paginator(qs, 20)
+    paginator = Paginator(qs, 30)
     page = paginator.get_page(request.GET.get('page', 1))
 
     # HTMX: retorna só as linhas da tabela
@@ -37,9 +40,17 @@ def cliente_list(request):
     })
 
 
+def _cliente_do_usuario(request, pk):
+    """Cliente acessível ao usuário (dono ou legado). 404 caso contrário."""
+    return get_object_or_404(
+        filtrar_por_usuario(Cliente.objects.filter(deleted_at__isnull=True), request.user),
+        pk=pk,
+    )
+
+
 @login_required
 def cliente_detail(request, pk):
-    cliente = get_object_or_404(Cliente, pk=pk, deleted_at__isnull=True)
+    cliente = _cliente_do_usuario(request, pk)
     emprestimos = cliente.emprestimos.filter(
         deleted_at__isnull=True
     ).order_by('-data_inicio')
@@ -54,7 +65,9 @@ def cliente_create(request):
     if request.method == 'POST':
         form = ClienteForm(request.POST, request.FILES)
         if form.is_valid():
-            cliente = form.save()
+            cliente = form.save(commit=False)
+            cliente.owner = request.user
+            cliente.save()
             _audit(cliente, 'create', request.user)
             flash.success(request, f'Cliente {cliente.nome} cadastrado com sucesso.')
             return redirect('web_customers:detail', pk=cliente.id)
@@ -65,7 +78,7 @@ def cliente_create(request):
 
 @login_required
 def cliente_update(request, pk):
-    cliente = get_object_or_404(Cliente, pk=pk, deleted_at__isnull=True)
+    cliente = _cliente_do_usuario(request, pk)
     if request.method == 'POST':
         form = ClienteForm(request.POST, request.FILES, instance=cliente)
         if form.is_valid():
@@ -82,7 +95,7 @@ def cliente_update(request, pk):
 
 @login_required
 def cliente_delete(request, pk):
-    cliente = get_object_or_404(Cliente, pk=pk, deleted_at__isnull=True)
+    cliente = _cliente_do_usuario(request, pk)
     if request.method == 'POST':
         nome = cliente.nome
         cliente.soft_delete(usuario=request.user)
@@ -126,8 +139,8 @@ def buscar_indicador(request):
     q = request.GET.get('q_indicador', '').strip()
     clientes = []
     if len(q) >= 2:
-        clientes = Cliente.objects.filter(
-            nome__icontains=q,
-            deleted_at__isnull=True,
+        clientes = filtrar_por_usuario(
+            Cliente.objects.filter(nome__icontains=q, deleted_at__isnull=True),
+            request.user,
         )[:8]
     return render(request, 'customers/_indicador_results.html', {'clientes': clientes})

@@ -48,6 +48,12 @@ def criar_emprestimo(db, usuario, cliente):
     def _make(tipo='comum', status='ativo', cli=None, data_inicio=None,
               data_vencimento=None, capital=Decimal('1000'),
               taxa=Decimal('0.10')):
+        # Espelha o service: empréstimo comum lança o 1º ciclo de juros
+        # em juros_acumulados na criação (sem capitalização).
+        juros_acum = Decimal('0')
+        if tipo == 'comum':
+            from loans.domain.calculators import CalculadoraEmprestimoComum
+            juros_acum = CalculadoraEmprestimoComum.calcular_juros_mes(capital, taxa)
         return Emprestimo.objects.create(
             cliente=cli or cliente,
             tipo=tipo,
@@ -55,6 +61,8 @@ def criar_emprestimo(db, usuario, cliente):
             capital_inicial=capital,
             capital_atual=capital,
             taxa_juros_mensal=taxa,
+            juros_acumulados=juros_acum,
+            data_ultimo_acumulo=data_vencimento,
             data_inicio=data_inicio or date.today() - timedelta(days=60),
             data_vencimento=data_vencimento,
             registrado_por=usuario,

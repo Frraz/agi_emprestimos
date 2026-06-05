@@ -51,6 +51,7 @@ class Command(BaseCommand):
         )
 
         with transaction.atomic():
+            juros_lancados = self._acumular_juros_comum(data_ref, dry_run)
             parcelas_marcadas = self._marcar_parcelas_atrasadas(data_ref, dry_run)
             emprestimos_marcados = self._marcar_emprestimos_inadimplentes(data_ref, dry_run)
             clientes_atualizados = self._reclassificar_clientes(dry_run)
@@ -60,12 +61,67 @@ class Command(BaseCommand):
 
         self.stdout.write('\n' + '─' * 50)
         self.stdout.write(self.style.SUCCESS(
+            f'✅  Ciclos de juros lançados (comum): {juros_lancados}\n'
             f'✅  Parcelas marcadas como atrasadas: {parcelas_marcadas}\n'
             f'✅  Empréstimos marcados como inadimplentes: {emprestimos_marcados}\n'
             f'✅  Clientes reclassificados: {clientes_atualizados}\n'
         ))
         if dry_run:
             self.stdout.write(self.style.WARNING('⚠  DRY RUN — nenhuma alteração foi salva.\n'))
+
+    def _acumular_juros_comum(self, data_ref: date, dry_run: bool) -> int:
+        """
+        Lança os juros de cada ciclo vencido dos empréstimos COMUM em
+        juros_acumulados (juros simples, SEM capitalização).
+
+        Para cada empréstimo ativo/inadimplente do tipo comum, enquanto
+        data_ultimo_acumulo + 1 mês <= data_ref, lança capital_atual × taxa
+        e avança data_ultimo_acumulo um mês. O capital nunca muda aqui — não
+        há juros sobre juros. Idempotente: rodar duas vezes no mesmo dia não
+        lança em dobro.
+        """
+        from decimal import Decimal
+        from dateutil.relativedelta import relativedelta
+        from loans.infrastructure.models import Emprestimo
+        from loans.domain.calculators import CalculadoraEmprestimoComum
+
+        qs = Emprestimo.objects.filter(
+            tipo='comum',
+            status__in=['ativo', 'inadimplente'],
+            deleted_at__isnull=True,
+            data_ultimo_acumulo__isnull=False,
+        )
+
+        ciclos_total = 0
+        for emp in qs:
+            ciclos = 0
+            ultimo = emp.data_ultimo_acumulo
+            juros_acum = emp.juros_acumulados
+            proximo = ultimo + relativedelta(months=1)
+            while proximo <= data_ref:
+                juros_ciclo = CalculadoraEmprestimoComum.calcular_juros_mes(
+                    emp.capital_atual, emp.taxa_juros_mensal
+                )
+                juros_acum = juros_acum + juros_ciclo
+                ultimo = proximo
+                proximo = ultimo + relativedelta(months=1)
+                ciclos += 1
+
+            if ciclos and not dry_run:
+                emp.juros_acumulados = juros_acum
+                emp.data_ultimo_acumulo = ultimo
+                emp.save(update_fields=[
+                    'juros_acumulados', 'data_ultimo_acumulo', 'updated_at'
+                ])
+            ciclos_total += ciclos
+
+        if ciclos_total:
+            self.stdout.write(
+                f'  → {ciclos_total} ciclo(s) de juros lançado(s) em empréstimos comuns'
+            )
+        else:
+            self.stdout.write('  → Nenhum ciclo de juros a lançar')
+        return ciclos_total
 
     def _marcar_parcelas_atrasadas(self, data_ref: date, dry_run: bool) -> int:
         from loans.infrastructure.models import ParcelaEmprestimo

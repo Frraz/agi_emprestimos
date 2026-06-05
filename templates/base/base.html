@@ -520,6 +520,18 @@
   </a>
 </div>
 
+{# ══ SLIDE-OVER (painel lateral — carregado via HTMX) ═══════════════════ #}
+<div id="slideover-root"></div>
+<script>
+  // Fecha o slide-over com a tecla Esc
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      var root = document.getElementById('slideover-root');
+      if (root) root.innerHTML = '';
+    }
+  });
+</script>
+
 <script>
 /* ── Tema ────────────────────────────────────────────────────────────── */
 function applyTheme(t) {

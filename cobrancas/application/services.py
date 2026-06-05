@@ -17,28 +17,29 @@ class CobrancaService:
     STATUS_PARCELA_ABERTA = ('pendente', 'parcialmente_pago', 'atrasado')
 
     @staticmethod
-    def _emprestimos_abertos():
+    def _emprestimos_abertos(user=None):
         from loans.infrastructure.models import Emprestimo
+        from core.ownership import escopo_opcional
         return (
-            Emprestimo.objects.ativos()
+            escopo_opcional(Emprestimo.objects.ativos(), user)
             .select_related('cliente')
             .prefetch_related('parcelas')
         )
 
     @classmethod
-    def itens(cls, ref: date = None) -> list:
+    def itens(cls, ref: date = None, user=None) -> list:
         """
         Lista unificada de vencimentos em aberto. Cada item:
           {cliente, emprestimo, tipo, numero, data_vencimento, valor,
            juros_mes, total_quitacao, dias_atraso}
         `valor` = valor a receber naquele vencimento (comum: total de quitação;
-        parcela: valor em aberto).
+        parcela: valor em aberto). `user` escopa por dono (None = global).
         """
         from loans.domain.calculators import CalculadoraAtraso
 
         ref = ref or date.today()
         itens = []
-        for emp in cls._emprestimos_abertos():
+        for emp in cls._emprestimos_abertos(user):
             if emp.tipo == 'comum':
                 if emp.data_vencimento is None:
                     continue
@@ -74,7 +75,8 @@ class CobrancaService:
         return itens
 
     @classmethod
-    def vencimentos_por_bucket(cls, ref: date = None, data_especifica: date = None) -> dict:
+    def vencimentos_por_bucket(cls, ref: date = None, data_especifica: date = None,
+                               user=None) -> dict:
         """Agrupa os itens em baldes a partir da data de referência."""
         ref = ref or date.today()
         amanha = ref + timedelta(days=1)
@@ -88,7 +90,7 @@ class CobrancaService:
             'data_especifica': [],
         }
 
-        for item in cls.itens(ref):
+        for item in cls.itens(ref, user=user):
             d = item['data_vencimento']
             if data_especifica and d == data_especifica:
                 baldes['data_especifica'].append(item)
@@ -111,7 +113,7 @@ class CobrancaService:
         return baldes
 
     @classmethod
-    def total_atraso_por_cliente(cls, ref: date = None) -> list:
+    def total_atraso_por_cliente(cls, ref: date = None, user=None) -> list:
         """
         Total em ATRASO por cliente (apenas vencidos), ordenado por
         prioridade de cobrança (Essencial primeiro) e depois pelo maior valor.
@@ -121,7 +123,7 @@ class CobrancaService:
             'cliente': None, 'total': Decimal('0'),
             'qtd': 0, 'dias_max': 0,
         })
-        for item in cls.itens(ref):
+        for item in cls.itens(ref, user=user):
             if item['data_vencimento'] >= ref:
                 continue
             cli = item['cliente']
@@ -139,7 +141,7 @@ class CobrancaService:
         return linhas
 
     @classmethod
-    def eventos_calendario(cls, ano: int, mes: int, ref: date = None) -> dict:
+    def eventos_calendario(cls, ano: int, mes: int, ref: date = None, user=None) -> dict:
         """
         Mapa {dia(date): {'count', 'total', 'atrasado'}} para os vencimentos
         do mês informado, para montar a grade do calendário.
@@ -148,7 +150,7 @@ class CobrancaService:
         eventos = defaultdict(lambda: {
             'count': 0, 'total': Decimal('0'), 'atrasado': False,
         })
-        for item in cls.itens(ref):
+        for item in cls.itens(ref, user=user):
             d = item['data_vencimento']
             if d.year == ano and d.month == mes:
                 ev = eventos[d]

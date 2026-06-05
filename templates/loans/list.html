@@ -19,6 +19,10 @@
   {# Filtros #}
   <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-5 py-3.5 border-b border-slate-100 bg-slate-50/60">
     <form method="get" class="flex flex-col sm:flex-row gap-3 w-full">
+      <input type="text" name="q" value="{{ q }}"
+             placeholder="Buscar por nome, CPF ou telefone..."
+             class="input py-2 flex-1"
+             onkeydown="if(event.key==='Enter'){this.form.submit();}">
       <select name="tipo" onchange="this.form.submit()"
               class="input py-2 w-full sm:w-44">
         <option value="" {% if not tipo %}selected{% endif %}>Todos os tipos</option>
@@ -152,8 +156,8 @@
     <div class="flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50/60">
       <p class="text-xs text-slate-500">{{ page.start_index }}–{{ page.end_index }} de {{ page.paginator.count }}</p>
       <div class="flex gap-1">
-        {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}&tipo={{ tipo }}&status={{ status_f }}" class="btn btn-secondary btn-sm">← Anterior</a>{% endif %}
-        {% if page.has_next %}<a href="?page={{ page.next_page_number }}&tipo={{ tipo }}&status={{ status_f }}" class="btn btn-secondary btn-sm">Próxima →</a>{% endif %}
+        {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}&q={{ q }}&tipo={{ tipo }}&status={{ status_f }}&vencido={{ vencido }}" class="btn btn-secondary btn-sm">← Anterior</a>{% endif %}
+        {% if page.has_next %}<a href="?page={{ page.next_page_number }}&q={{ q }}&tipo={{ tipo }}&status={{ status_f }}&vencido={{ vencido }}" class="btn btn-secondary btn-sm">Próxima →</a>{% endif %}
       </div>
     </div>
     {% endif %}
@@ -164,8 +168,8 @@
   <div class="lg:hidden flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50/60">
     <p class="text-xs text-slate-500">Pág. {{ page.number }}/{{ page.paginator.num_pages }}</p>
     <div class="flex gap-1.5">
-      {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}&tipo={{ tipo }}&status={{ status_f }}" class="btn btn-secondary btn-sm">←</a>{% endif %}
-      {% if page.has_next %}<a href="?page={{ page.next_page_number }}&tipo={{ tipo }}&status={{ status_f }}" class="btn btn-secondary btn-sm">→</a>{% endif %}
+      {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}&q={{ q }}&tipo={{ tipo }}&status={{ status_f }}&vencido={{ vencido }}" class="btn btn-secondary btn-sm">←</a>{% endif %}
+      {% if page.has_next %}<a href="?page={{ page.next_page_number }}&q={{ q }}&tipo={{ tipo }}&status={{ status_f }}&vencido={{ vencido }}" class="btn btn-secondary btn-sm">→</a>{% endif %}
     </div>
   </div>
   {% endif %}

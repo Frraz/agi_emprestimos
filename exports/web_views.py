@@ -143,8 +143,9 @@ def exportar(request, dataset, fmt):
         return resp
 
     if fmt == 'pdf':
+        linhas = [[r.get(c, '') for c in campos] for r in rows]
         return _pdf_response(request, 'exports/pdf_tabela.html', {
-            'titulo': titulo, 'campos': campos, 'rows': rows, 'hoje': date.today(),
+            'titulo': titulo, 'campos': campos, 'linhas': linhas, 'hoje': date.today(),
             'operador': request.user.get_username(),
         }, nome_arq)
 
@@ -191,9 +192,15 @@ def exportar_backup(request, fmt):
         return resp
 
     if fmt == 'pdf':
+        secoes = []
+        for nome, (titulo, fetch, row_fn, campos) in _DATASETS.items():
+            secoes.append({
+                'titulo': titulo, 'campos': campos,
+                'linhas': [[r.get(c, '') for c in campos] for r in blocos[nome]],
+            })
         return _pdf_response(request, 'exports/pdf_backup.html', {
-            'blocos': blocos, 'configuracoes': configuracoes,
-            'datasets': _DATASETS, 'hoje': date.today(), 'operador': user.get_username(),
+            'secoes': secoes, 'configuracoes': configuracoes,
+            'hoje': date.today(), 'operador': user.get_username(),
         }, nome_arq)
 
     flash.error(request, 'Formato inválido.')

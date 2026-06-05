@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: A4 landscape; margin: 1.5cm; }
+  body { font-family: Arial, sans-serif; color: #1e293b; font-size: 10px; }
+  h1 { font-size: 20px; margin: 0 0 2px; color: #059669; }
+  h2 { font-size: 14px; margin: 18px 0 6px; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 3px; }
+  .meta { color: #64748b; font-size: 9px; margin-bottom: 8px; }
+  .cap { display: flex; gap: 16px; margin: 8px 0 4px; }
+  .cap div { background: #f1f5f9; border-radius: 6px; padding: 6px 10px; }
+  .cap b { display: block; font-size: 13px; color: #0f172a; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+  th { background: #f1f5f9; text-align: left; padding: 5px 7px; font-size: 8px;
+       text-transform: uppercase; color: #475569; border-bottom: 1px solid #cbd5e1; }
+  td { padding: 4px 7px; border-bottom: 1px solid #eef2f7; }
+</style>
+</head>
+<body>
+  <h1>AGI Empréstimos — Backup completo</h1>
+  <p class="meta">Operador: {{ operador }} · Gerado em {{ hoje|date:"d/m/Y" }}</p>
+
+  <div class="cap">
+    <div>Capital em operação <b>R$ {{ configuracoes.capital_em_operacao|floatformat:2 }}</b></div>
+    <div>Disponível em caixa <b>R$ {{ configuracoes.capital_em_caixa|floatformat:2 }}</b></div>
+    <div>Emprestado <b>R$ {{ configuracoes.capital_emprestado|floatformat:2 }}</b></div>
+  </div>
+
+  {% for secao in secoes %}
+  <h2>{{ secao.titulo }} ({{ secao.linhas|length }})</h2>
+  <table>
+    <thead>
+      <tr>{% for campo in secao.campos %}<th>{{ campo }}</th>{% endfor %}</tr>
+    </thead>
+    <tbody>
+      {% for linha in secao.linhas %}
+      <tr>{% for valor in linha %}<td>{{ valor }}</td>{% endfor %}</tr>
+      {% empty %}
+      <tr><td colspan="{{ secao.campos|length }}">Sem registros.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endfor %}
+</body>
+</html>

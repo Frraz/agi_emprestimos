@@ -362,6 +362,125 @@ class EmprestimoService:
             'quitado': emp.status == 'quitado',
         }
 
+    # ── Remoção / restauração de PAGAMENTO ───────────────────────────────────
+
+    @staticmethod
+    def desativar_pagamento(pagamento_id: str, usuario=None):
+        """Soft delete reversível de um pagamento + recálculo do saldo."""
+        pag = _get_pagamento(pagamento_id, incluir_deletados=False)
+        emp = pag.emprestimo
+        with transaction.atomic():
+            pag.soft_delete(usuario=usuario)
+            recalcular_emprestimo(emp, date.today())
+        _atualizar_classificacao_cliente(str(emp.cliente_id))
+        _audit(pag, 'soft_delete', usuario)
+        return pag
+
+    @staticmethod
+    def ativar_pagamento(pagamento_id: str, usuario=None):
+        """Restaura um pagamento desativado + recálculo do saldo."""
+        pag = _get_pagamento(pagamento_id, incluir_deletados=True)
+        emp = pag.emprestimo
+        with transaction.atomic():
+            pag.restore()
+            recalcular_emprestimo(emp, date.today())
+        _atualizar_classificacao_cliente(str(emp.cliente_id))
+        _audit(pag, 'restore', usuario)
+        return pag
+
+    @staticmethod
+    def apagar_pagamento(pagamento_id: str, usuario=None):
+        """Exclusão DEFINITIVA (hard delete) de um pagamento + recálculo do saldo."""
+        pag = _get_pagamento(pagamento_id, incluir_deletados=True)
+        emp = pag.emprestimo
+        pag_id = str(pag.id)
+        with transaction.atomic():
+            _audit(pag, 'delete', usuario)
+            pag.delete()
+            recalcular_emprestimo(emp, date.today())
+        _atualizar_classificacao_cliente(str(emp.cliente_id))
+        return pag_id
+
+    # ── Remoção / restauração de EMPRÉSTIMO ──────────────────────────────────
+
+    @staticmethod
+    def desativar_emprestimo(emprestimo_id: str, usuario=None):
+        """Soft delete reversível do empréstimo + dos seus pagamentos (saem do
+        caixa/juros recebidos enquanto desativados)."""
+        emp = _get_emprestimo(emprestimo_id)
+        with transaction.atomic():
+            for pag in emp.pagamentos.filter(deleted_at__isnull=True):
+                pag.soft_delete(usuario=usuario)
+            emp.soft_delete(usuario=usuario)
+        _atualizar_classificacao_cliente(str(emp.cliente_id))
+        _audit(emp, 'soft_delete', usuario)
+        return emp
+
+    @staticmethod
+    def ativar_emprestimo(emprestimo_id: str, usuario=None):
+        """Restaura um empréstimo desativado + os seus pagamentos."""
+        from loans.infrastructure.models import Emprestimo
+        try:
+            emp = Emprestimo.objects.get(id=emprestimo_id)
+        except Emprestimo.DoesNotExist:
+            raise EntidadeNaoEncontradaError(f'Empréstimo não encontrado: {emprestimo_id}')
+        with transaction.atomic():
+            emp.restore()
+            for pag in emp.pagamentos.filter(deleted_at__isnull=False):
+                pag.restore()
+            recalcular_emprestimo(emp, date.today())
+        _atualizar_classificacao_cliente(str(emp.cliente_id))
+        _audit(emp, 'restore', usuario)
+        return emp
+
+    @staticmethod
+    def apagar_emprestimo(emprestimo_id: str, usuario=None):
+        """Exclusão DEFINITIVA (hard delete) em cascata de um empréstimo:
+        pagamentos, movimentações de capital, parcelas e garantias."""
+        from loans.infrastructure.models import Emprestimo
+        try:
+            emp = Emprestimo.objects.get(id=emprestimo_id)
+        except Emprestimo.DoesNotExist:
+            raise EntidadeNaoEncontradaError(f'Empréstimo não encontrado: {emprestimo_id}')
+        with transaction.atomic():
+            _audit(emp, 'delete', usuario)
+            _hard_delete_emprestimo(emp)
+        _atualizar_classificacao_cliente(str(emp.cliente_id))
+        return str(emprestimo_id)
+
+    # ── Edição de EMPRÉSTIMO ─────────────────────────────────────────────────
+
+    @staticmethod
+    def editar_emprestimo(
+        emprestimo_id: str, usuario=None, observacoes=None,
+        data_vencimento=None, taxa_mensal=None,
+    ):
+        """Edita campos seguros de um empréstimo. Para COMUM, taxa nova dispara
+        recálculo do saldo. Parcelado ignora taxa (regeraria a tabela)."""
+        emp = _get_emprestimo(emprestimo_id)
+        antes = {
+            'observacoes': emp.observacoes,
+            'data_vencimento': str(emp.data_vencimento),
+            'taxa': str(emp.taxa_juros_mensal),
+        }
+        with transaction.atomic():
+            if observacoes is not None:
+                emp.observacoes = observacoes
+            if data_vencimento is not None:
+                emp.data_vencimento = data_vencimento
+            campos = ['observacoes', 'data_vencimento', 'updated_at']
+            recalc = False
+            if taxa_mensal is not None and emp.tipo == 'comum':
+                _validar_financeiro(emp.capital_inicial, taxa_mensal)
+                emp.taxa_juros_mensal = taxa_mensal
+                campos.append('taxa_juros_mensal')
+                recalc = True
+            emp.save(update_fields=campos)
+            if recalc:
+                recalcular_emprestimo(emp, date.today())
+        _audit(emp, 'update', usuario, {'antes': antes})
+        return emp
+
 
 # ── Helpers privados do módulo ─────────────────────────────────────────────
 
@@ -394,7 +513,10 @@ def reconstruir_saldo_comum(emp, data_ref: date):
         ciclos.append(d)
         d += relativedelta(months=1)
 
-    pagamentos = list(emp.pagamentos.order_by('data_pagamento', 'created_at'))
+    pagamentos = list(
+        emp.pagamentos.filter(deleted_at__isnull=True)
+        .order_by('data_pagamento', 'created_at')
+    )
     i = 0
     for pag in pagamentos:
         while i < len(ciclos) and ciclos[i] <= pag.data_pagamento:
@@ -410,6 +532,35 @@ def reconstruir_saldo_comum(emp, data_ref: date):
         i += 1
 
     return (max(Decimal('0'), capital), juros_acum)
+
+
+def recalcular_emprestimo(emp, data_ref: date):
+    """Recalcula o saldo armazenado de um empréstimo a partir dos seus pagamentos
+    NÃO deletados. Usado depois de remover/restaurar pagamentos. Persiste
+    capital_atual/juros_acumulados/status/data_quitacao (e status das parcelas)."""
+    if emp.tipo == 'comum':
+        capital, juros = reconstruir_saldo_comum(emp, data_ref)
+        emp.capital_atual = capital
+        emp.juros_acumulados = juros
+        if capital <= Decimal('0'):
+            emp.status = 'quitado'
+            emp.data_quitacao = emp.data_quitacao or data_ref
+        elif emp.status == 'quitado':
+            emp.status = 'ativo'
+            emp.data_quitacao = None
+        emp.save(update_fields=[
+            'capital_atual', 'juros_acumulados', 'status', 'data_quitacao', 'updated_at',
+        ])
+    else:
+        for parcela in emp.parcelas.all():
+            _recompute_parcela_from_payments(parcela)
+        _recalcular_capital_parcelado(emp, data_ref)
+        # _recalcular_capital_parcelado só quita; reverte se reabriu parcela/saldo.
+        tem_aberta = emp.parcelas.filter(status__in=_PARCELA_ABERTA).exists()
+        if emp.status == 'quitado' and tem_aberta and emp.capital_atual > Decimal('0'):
+            emp.status = 'ativo'
+            emp.data_quitacao = None
+            emp.save(update_fields=['status', 'data_quitacao', 'updated_at'])
 
 
 def _recompute_split_pagamento(pag):
@@ -484,7 +635,8 @@ def _recalcular_capital_parcelado(emp, data_pagamento):
     from django.db.models import Sum
 
     principal_pago = (
-        emp.pagamentos.aggregate(t=Sum('valor_capital_pago'))['t'] or Decimal('0')
+        emp.pagamentos.filter(deleted_at__isnull=True)
+        .aggregate(t=Sum('valor_capital_pago'))['t'] or Decimal('0')
     )
     emp.capital_atual = _money(max(Decimal('0'), emp.capital_inicial - principal_pago))
 
@@ -516,6 +668,31 @@ def _get_emprestimo(emprestimo_id: str):
         return Emprestimo.objects.get(id=emprestimo_id, deleted_at__isnull=True)
     except Emprestimo.DoesNotExist:
         raise EntidadeNaoEncontradaError(f"Empréstimo não encontrado: {emprestimo_id}")
+
+
+def _get_pagamento(pagamento_id: str, incluir_deletados: bool = False):
+    from payments.infrastructure.models import Pagamento
+    qs = Pagamento.objects.select_related('emprestimo', 'parcela')
+    if not incluir_deletados:
+        qs = qs.filter(deleted_at__isnull=True)
+    try:
+        return qs.get(id=pagamento_id)
+    except Pagamento.DoesNotExist:
+        raise EntidadeNaoEncontradaError(f"Pagamento não encontrado: {pagamento_id}")
+
+
+def _hard_delete_emprestimo(emp):
+    """Remove DEFINITIVAMENTE um empréstimo e seus dependentes, respeitando as
+    FKs PROTECT. Deve rodar dentro de transaction.atomic(). Não recalcula caixa
+    (derivado de agregações que já ignoram o que foi apagado)."""
+    from payments.infrastructure.models import Pagamento
+    from core.models_config import MovimentacaoCapital
+    # 1) pagamentos primeiro (PROTECT em emprestimo e parcela)
+    Pagamento.objects.filter(emprestimo=emp).delete()
+    # 2) movimentações de capital ligadas (senão virariam SET_NULL órfãs)
+    MovimentacaoCapital.objects.filter(emprestimo=emp).delete()
+    # 3) o empréstimo cascateia parcelas, garantias e documentos de garantia
+    emp.delete()
 
 
 def _validar_status_para_pagamento(emprestimo):

@@ -54,7 +54,8 @@ Toda a documentação detalhada das regras e fórmulas está em `logica_de_negoc
 ## Convenções de dados (todos os models)
 
 - Herdam de `core.models.BaseModel` (UUID v4 como PK, `created_at`/`updated_at`/`deleted_at`) ou `SoftDeleteModel`.
-- **Soft delete:** nunca delete dados financeiros de verdade. Use `.soft_delete()`. Em `SoftDeleteModel`, `.objects` já filtra deletados; use `.all_objects` para incluí-los.
+- **Soft delete (padrão):** a operação reversível "Desativar/Ativar" da UI usa `.soft_delete()`/`.restore()`. Em `SoftDeleteModel`, `.objects` já filtra deletados; use `.all_objects` para incluí-los. (Cliente/Empréstimo/Pagamento herdam de `BaseModel`, cujo `.objects` **inclui** deletados — filtre `deleted_at__isnull=True` explicitamente, como já fazem as views.)
+- **Hard delete (exceção, opt-in):** a UI também oferece "Apagar" — exclusão **definitiva em cascata** (cliente → empréstimos → pagamentos/parcelas/garantias/movimentações de capital), com confirmação explícita de irreversibilidade. Decisão do cliente (jun/2026). Orquestrado **só** nas services (`ClienteService.apagar_cliente`, `EmprestimoService.apagar_emprestimo`/`apagar_pagamento` + helper `_hard_delete_emprestimo`), respeitando a ordem das FKs PROTECT (apaga pagamentos antes das parcelas). O `AuditLog` (GenericFK, sem constraint) sobrevive ao hard delete. Remover um pagamento/empréstimo **recalcula o saldo** do empréstimo via `recalcular_emprestimo`; o caixa se corrige sozinho (as agregações de `CapitalOperacional` filtram `deleted_at`).
 - **`updated_at`** é o vetor de sincronização do app Flutter — preserve esse comportamento.
 - **Dinheiro/taxas:** sempre `Decimal` com `ROUND_HALF_UP`. A precisão global está em 28 casas (`getcontext().prec = 28` em `base.py`). Taxas armazenadas como decimal (`0.05` = 5% a.m.).
 - **Auditoria:** mutações financeiras devem gerar `AuditLog` (app `audit`, append-only via `GenericForeignKey`), feito na camada de services.

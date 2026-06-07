@@ -10,4 +10,8 @@ urlpatterns = [
     path('novo/parcelado/<uuid:cliente_pk>/', web_views.emprestimo_criar_parcelado, name='criar_parcelado'),
     path('<uuid:pk>/pagar/', web_views.emprestimo_pagar, name='pagar'),
     path('<uuid:pk>/pagar-parcelas/', web_views.emprestimo_pagar_parcelas, name='pagar_parcelas'),
+    path('<uuid:pk>/editar/', web_views.emprestimo_editar, name='editar'),
+    path('<uuid:pk>/desativar/', web_views.emprestimo_desativar, name='desativar'),
+    path('<uuid:pk>/ativar/', web_views.emprestimo_ativar, name='ativar'),
+    path('<uuid:pk>/apagar/', web_views.emprestimo_apagar, name='apagar'),
 ]

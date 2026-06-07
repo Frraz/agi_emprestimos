@@ -69,8 +69,64 @@ class ClienteService:
 
         return classificacao
 
+    # ── Remoção / restauração de CLIENTE (cascata) ───────────────────────────
 
-# ── Helper privado (módulo-level para não poluir a classe) ─────────────────
+    @staticmethod
+    def desativar_cliente(cliente_id: str, usuario=None):
+        """Soft delete reversível do cliente + cascata nos empréstimos dele."""
+        from django.db import transaction
+        from loans.application.services import EmprestimoService
+
+        cliente = _get_cliente(cliente_id, incluir_deletados=False)
+        with transaction.atomic():
+            for emp in cliente.emprestimos.filter(deleted_at__isnull=True):
+                EmprestimoService.desativar_emprestimo(str(emp.id), usuario)
+            cliente.soft_delete(usuario=usuario)
+        _registrar_auditoria(cliente, 'soft_delete', usuario)
+        return cliente
+
+    @staticmethod
+    def ativar_cliente(cliente_id: str, usuario=None):
+        """Restaura um cliente desativado + cascata nos empréstimos dele."""
+        from django.db import transaction
+        from loans.application.services import EmprestimoService
+
+        cliente = _get_cliente(cliente_id, incluir_deletados=True)
+        with transaction.atomic():
+            cliente.restore()
+            for emp in cliente.emprestimos.filter(deleted_at__isnull=False):
+                EmprestimoService.ativar_emprestimo(str(emp.id), usuario)
+        _registrar_auditoria(cliente, 'restore', usuario)
+        return cliente
+
+    @staticmethod
+    def apagar_cliente(cliente_id: str, usuario=None):
+        """Exclusão DEFINITIVA (hard delete) em cascata: empréstimos (com seus
+        pagamentos/parcelas/garantias/movimentações) e o próprio cliente."""
+        from django.db import transaction
+        from loans.application.services import _hard_delete_emprestimo
+
+        cliente = _get_cliente(cliente_id, incluir_deletados=True)
+        with transaction.atomic():
+            _registrar_auditoria(cliente, 'delete', usuario)
+            for emp in list(cliente.emprestimos.all()):
+                _hard_delete_emprestimo(emp)
+            cliente.delete()
+        return str(cliente_id)
+
+
+# ── Helpers privados (módulo-level para não poluir a classe) ───────────────
+
+def _get_cliente(cliente_id: str, incluir_deletados: bool = False):
+    from customers.infrastructure.models import Cliente
+    qs = Cliente.objects.all()
+    if not incluir_deletados:
+        qs = qs.filter(deleted_at__isnull=True)
+    try:
+        return qs.get(id=cliente_id)
+    except Cliente.DoesNotExist:
+        raise EntidadeNaoEncontradaError(f"Cliente não encontrado: {cliente_id}")
+
 
 def _registrar_auditoria(obj, action: str, usuario, changes: dict = None):
     try:

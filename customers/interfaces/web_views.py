@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages as flash
 from django.core.paginator import Paginator
@@ -6,6 +7,7 @@ from django.db.models import Q
 
 from customers.infrastructure.models import Cliente, TagCliente
 from customers.interfaces.forms import ClienteForm
+from customers.application.services import ClienteService
 from core.exceptions import AgiBaseException
 from core.ownership import filtrar_por_usuario
 import urllib.request
@@ -21,10 +23,10 @@ def cliente_list(request):
     q = request.GET.get('q', '').strip()
     classificacao = request.GET.get('classificacao', '')
     tag = request.GET.get('tag', '')
+    inativos = request.GET.get('inativos', '') == '1'
 
-    qs = filtrar_por_usuario(
-        Cliente.objects.filter(deleted_at__isnull=True), request.user
-    ).prefetch_related('tags').order_by('nome')
+    base = Cliente.objects.filter(deleted_at__isnull=not inativos)
+    qs = filtrar_por_usuario(base, request.user).prefetch_related('tags').order_by('nome')
     if q:
         qs = qs.filter(
             Q(nome__icontains=q) | Q(cpf__icontains=q) | Q(telefone_principal__icontains=q)
@@ -39,6 +41,7 @@ def cliente_list(request):
 
     ctx = {
         'page': page, 'q': q, 'classificacao': classificacao, 'tag': tag,
+        'inativos': inativos,
         'tags': _tags_do_usuario(request), 'total': qs.count(),
     }
     # HTMX: retorna só as linhas da tabela
@@ -85,12 +88,12 @@ def cliente_set_tags(request, pk):
     return redirect('web_customers:detail', pk=cliente.id)
 
 
-def _cliente_do_usuario(request, pk):
+def _cliente_do_usuario(request, pk, incluir_deletados=False):
     """Cliente acessível ao usuário (dono ou legado). 404 caso contrário."""
-    return get_object_or_404(
-        filtrar_por_usuario(Cliente.objects.filter(deleted_at__isnull=True), request.user),
-        pk=pk,
-    )
+    base = Cliente.objects.all()
+    if not incluir_deletados:
+        base = base.filter(deleted_at__isnull=True)
+    return get_object_or_404(filtrar_por_usuario(base, request.user), pk=pk)
 
 
 @login_required
@@ -141,14 +144,40 @@ def cliente_update(request, pk):
 
 
 @login_required
-def cliente_delete(request, pk):
+def cliente_desativar(request, pk):
+    """Soft delete reversível (desativa o cliente e seus empréstimos)."""
     cliente = _cliente_do_usuario(request, pk)
     if request.method == 'POST':
         nome = cliente.nome
-        cliente.soft_delete(usuario=request.user)
-        flash.success(request, f'Cliente {nome} removido.')
+        ClienteService.desativar_cliente(str(cliente.id), request.user)
+        flash.success(request, f'Cliente {nome} desativado. Veja em "Mostrar desativados".')
+    return redirect('web_customers:list')
+
+
+@login_required
+def cliente_ativar(request, pk):
+    """Restaura um cliente desativado (e seus empréstimos)."""
+    cliente = _cliente_do_usuario(request, pk, incluir_deletados=True)
+    if request.method == 'POST':
+        ClienteService.ativar_cliente(str(cliente.id), request.user)
+        flash.success(request, f'Cliente {cliente.nome} reativado.')
+    return redirect(f"{reverse('web_customers:list')}?inativos=1")
+
+
+@login_required
+def cliente_apagar(request, pk):
+    """Exclusão DEFINITIVA (hard delete) em cascata. Irreversível."""
+    cliente = _cliente_do_usuario(request, pk, incluir_deletados=True)
+    if request.method == 'POST':
+        nome = cliente.nome
+        ClienteService.apagar_cliente(str(cliente.id), request.user)
+        flash.success(request, f'Cliente {nome} e todos os dados vinculados foram apagados.')
         return redirect('web_customers:list')
-    return render(request, 'customers/confirm_delete.html', {'cliente': cliente})
+    n_emp = cliente.emprestimos.count()
+    n_pag = sum(e.pagamentos.count() for e in cliente.emprestimos.all())
+    return render(request, 'customers/confirm_apagar.html', {
+        'cliente': cliente, 'n_emp': n_emp, 'n_pag': n_pag,
+    })
 
 
 def _audit(obj, action, usuario):

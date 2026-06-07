@@ -114,6 +114,40 @@ class EmprestimoParceladoForm(forms.Form):
         return taxa / Decimal('100')
 
 
+class EmprestimoEditForm(forms.Form):
+    """Edição de campos seguros de um empréstimo. Para COMUM permite alterar a
+    taxa (com recálculo); para parcelado a taxa fica oculta (regeraria a tabela)."""
+    data_vencimento = forms.DateField(
+        required=False, label='Data de Vencimento',
+        widget=forms.DateInput(attrs={'class': _I, 'type': 'date'}),
+    )
+    taxa_mensal = forms.DecimalField(
+        required=False, max_digits=6, decimal_places=2,
+        label='Taxa de Juros Mensal (%)',
+        help_text='Recalcula o saldo do empréstimo. Só para empréstimo comum.',
+        widget=forms.NumberInput(attrs={'class': _I, 'step': '0.01'}),
+    )
+    observacoes = forms.CharField(
+        required=False, label='Observações',
+        widget=forms.Textarea(attrs={'class': _T, 'rows': 2}),
+    )
+
+    def __init__(self, *args, instance_tipo='comum', **kwargs):
+        super().__init__(*args, **kwargs)
+        self._tipo = instance_tipo
+        if instance_tipo != 'comum':
+            # Parcelado não edita taxa pela tela (regeraria a tabela de parcelas).
+            self.fields.pop('taxa_mensal')
+
+    def clean_taxa_mensal(self):
+        taxa = self.cleaned_data.get('taxa_mensal')
+        if taxa is None or taxa == '':
+            return None
+        if taxa < 0 or taxa >= 100:
+            raise forms.ValidationError('Taxa deve estar entre 0% e 100%.')
+        return taxa / Decimal('100')
+
+
 class PagamentoComumForm(forms.Form):
     valor = forms.DecimalField(
         max_digits=12, decimal_places=2, label='Valor do Pagamento (R$)',

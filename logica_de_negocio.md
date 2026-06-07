@@ -32,8 +32,8 @@ O **Agi Empréstimos** é um sistema de administração de crédito informal. O 
 **Princípios fundamentais:**
 - Toda lógica financeira (juros, amortização, saldo devedor, parcelas) vive exclusivamente no backend Django, nunca no frontend ou no app mobile.
 - O app mobile funciona offline e sincroniza com o servidor ao reconectar.
-- Nenhum dado financeiro é destruído — apenas soft delete (marcação de exclusão).
-- Todo pagamento é imutável após o registro — para corrigir, cancela-se e registra novo.
+- Remoção padrão é soft delete reversível ("Desativar"). Há também "Apagar" (hard delete em cascata, irreversível, com confirmação explícita) — ver §9.2.
+- Pagamentos podem ser editados e removidos pelo operador autenticado (decisão jun/2026, ver §9.2); cada alteração recalcula o saldo e gera `AuditLog`.
 
 ---
 
@@ -565,11 +565,21 @@ Registros de auditoria **nunca são editados ou deletados**. O admin bloqueia es
 - Todos os registros usam **UUID v4** como chave primária.
 - UUIDs evitam IDs sequenciais previsíveis e facilitam a sincronização offline do app Flutter.
 
-### 9.2 Soft Delete
-- Nenhuma entidade financeira é deletada fisicamente.
-- Exclusão = preencher `deleted_at` com o timestamp atual.
-- Registros com `deleted_at != null` são invisíveis nas listagens, mas existem no banco.
-- Queries padrão filtram `deleted_at__isnull=True` automaticamente via `ActiveManager`.
+### 9.2 Soft Delete (Desativar/Ativar) e Hard Delete (Apagar)
+A UI expõe dois níveis de remoção em clientes, empréstimos e pagamentos:
+
+**Desativar/Ativar (soft delete — reversível, padrão):**
+- Exclusão = preencher `deleted_at` com o timestamp atual; reativar = limpar `deleted_at`.
+- Registros com `deleted_at != null` são invisíveis nas listagens (filtro "Mostrar desativados" os reexibe), mas existem no banco.
+- Cliente/Empréstimo/Pagamento herdam de `BaseModel`: as queries filtram `deleted_at__isnull=True` explicitamente (não via `ActiveManager`).
+- Desativar é em cascata: desativar um cliente desativa seus empréstimos e pagamentos; desativar um empréstimo desativa seus pagamentos.
+
+**Apagar (hard delete — definitivo, em cascata, irreversível):**
+- Decisão do cliente (jun/2026): existe um botão "Apagar" que remove fisicamente o registro e seus dependentes (cliente → empréstimos → pagamentos/parcelas/garantias/movimentações de capital), com tela de confirmação avisando que **não há volta**.
+- Orquestrado nas services (`apagar_cliente`/`apagar_emprestimo`/`apagar_pagamento`), respeitando a ordem das FKs PROTECT (pagamentos antes das parcelas).
+- O `AuditLog` permanece (registra quem apagou o quê).
+
+**Recálculo:** remover (soft ou hard) um pagamento ou empréstimo recalcula o saldo armazenado do empréstimo (`recalcular_emprestimo`). O caixa do operador se corrige automaticamente, pois `CapitalOperacional` deriva tudo de agregações que filtram `deleted_at`.
 
 ### 9.3 Timestamps de sincronização
 - `created_at`: preenchido automaticamente na criação (imutável).

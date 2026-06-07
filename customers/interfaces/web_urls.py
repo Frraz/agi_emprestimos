@@ -12,6 +12,8 @@ urlpatterns = [
     path('buscar-cep/', web_views.buscar_cep, name='buscar_cep'),
     path('<uuid:pk>/', web_views.cliente_detail, name='detail'),
     path('<uuid:pk>/editar/', web_views.cliente_update, name='update'),
-    path('<uuid:pk>/excluir/', web_views.cliente_delete, name='delete'),
+    path('<uuid:pk>/desativar/', web_views.cliente_desativar, name='desativar'),
+    path('<uuid:pk>/ativar/', web_views.cliente_ativar, name='ativar'),
+    path('<uuid:pk>/apagar/', web_views.cliente_apagar, name='apagar'),
     path('<uuid:pk>/tags/', web_views.cliente_set_tags, name='set_tags'),
 ]

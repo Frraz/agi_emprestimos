@@ -1,7 +1,7 @@
 from datetime import datetime, date
 from decimal import Decimal, InvalidOperation
 
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
@@ -21,10 +21,12 @@ def pagamento_list(request):
     tipo = request.GET.get('tipo', '')
     de = request.GET.get('de', '')
     ate = request.GET.get('ate', '')
+    inativos = request.GET.get('inativos', '') == '1'
 
-    qs = filtrar_por_usuario(
-        Pagamento.objects.filter(deleted_at__isnull=True), request.user
-    ).select_related('emprestimo__cliente').order_by('-data_pagamento', '-created_at')
+    base = Pagamento.objects.filter(deleted_at__isnull=not inativos)
+    qs = filtrar_por_usuario(base, request.user).select_related(
+        'emprestimo__cliente'
+    ).order_by('-data_pagamento', '-created_at')
 
     if q:
         qs = qs.filter(
@@ -43,12 +45,51 @@ def pagamento_list(request):
     page = paginator.get_page(request.GET.get('page', 1))
 
     ctx = {
-        'page': page, 'q': q, 'tipo': tipo, 'de': de, 'ate': ate,
+        'page': page, 'q': q, 'tipo': tipo, 'de': de, 'ate': ate, 'inativos': inativos,
+        'inativos_qs': '&inativos=1' if inativos else '',
         'tipo_choices': Pagamento.TIPO_CHOICES, 'total': qs.count(),
     }
     if request.htmx:
         return render(request, 'payments/_rows.html', ctx)
     return render(request, 'payments/list.html', ctx)
+
+
+def _pagamento_do_usuario(request, pk, incluir_deletados=False):
+    base = Pagamento.objects.all()
+    if not incluir_deletados:
+        base = base.filter(deleted_at__isnull=True)
+    return get_object_or_404(
+        filtrar_por_usuario(base.select_related('emprestimo__cliente'), request.user),
+        pk=pk,
+    )
+
+
+@login_required
+def pagamento_desativar(request, pk):
+    pag = _pagamento_do_usuario(request, pk)
+    if request.method == 'POST':
+        EmprestimoService.desativar_pagamento(str(pag.id), request.user)
+        flash.success(request, 'Pagamento desativado e saldo recalculado.')
+    return redirect(request.META.get('HTTP_REFERER') or reverse('web_payments:list'))
+
+
+@login_required
+def pagamento_ativar(request, pk):
+    pag = _pagamento_do_usuario(request, pk, incluir_deletados=True)
+    if request.method == 'POST':
+        EmprestimoService.ativar_pagamento(str(pag.id), request.user)
+        flash.success(request, 'Pagamento reativado e saldo recalculado.')
+    return redirect(f"{reverse('web_payments:list')}?inativos=1")
+
+
+@login_required
+def pagamento_apagar(request, pk):
+    pag = _pagamento_do_usuario(request, pk, incluir_deletados=True)
+    if request.method == 'POST':
+        EmprestimoService.apagar_pagamento(str(pag.id), request.user)
+        flash.success(request, 'Pagamento apagado definitivamente e saldo recalculado.')
+        return redirect('web_payments:list')
+    return render(request, 'payments/confirm_apagar.html', {'pag': pag})
 
 
 @login_required

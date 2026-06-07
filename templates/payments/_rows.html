@@ -14,9 +14,22 @@
       </div>
       <div class="flex-shrink-0 text-right">
         <p class="text-base font-bold text-emerald-600">R$ {{ pag.valor|floatformat:2 }}</p>
-        <button type="button" class="text-2xs text-blue-500 hover:underline"
-                hx-get="{% url 'web_payments:editar' pk=pag.id %}"
-                hx-target="#slideover-root" hx-swap="innerHTML">Editar</button>
+        <div class="flex items-center justify-end gap-2 mt-0.5">
+          {% if inativos %}
+          <form method="post" action="{% url 'web_payments:ativar' pk=pag.id %}" class="inline">
+            {% csrf_token %}<button type="submit" class="text-2xs text-emerald-600 hover:underline">Ativar</button>
+          </form>
+          {% else %}
+          <button type="button" class="text-2xs text-blue-500 hover:underline"
+                  hx-get="{% url 'web_payments:editar' pk=pag.id %}"
+                  hx-target="#slideover-root" hx-swap="innerHTML">Editar</button>
+          <form method="post" action="{% url 'web_payments:desativar' pk=pag.id %}" class="inline"
+                onsubmit="return confirm('Desativar este pagamento? O saldo será recalculado.');">
+            {% csrf_token %}<button type="submit" class="text-2xs text-slate-500 hover:underline">Desativar</button>
+          </form>
+          {% endif %}
+          <a href="{% url 'web_payments:apagar' pk=pag.id %}" class="text-2xs text-red-500 hover:underline">Apagar</a>
+        </div>
       </div>
     </div>
     <div class="grid grid-cols-3 gap-2 bg-slate-50 rounded-lg p-3">
@@ -73,10 +86,23 @@
         <td class="text-right text-blue-600 text-xs font-mono">R$ {{ pag.valor_capital_pago|floatformat:2 }}</td>
         <td class="text-right text-slate-600 text-xs font-mono">R$ {{ pag.capital_depois|floatformat:2 }}</td>
         <td class="text-right whitespace-nowrap">
-          <button type="button" class="btn btn-secondary btn-sm"
-                  hx-get="{% url 'web_payments:editar' pk=pag.id %}"
-                  hx-target="#slideover-root" hx-swap="innerHTML">Editar</button>
-          <a href="{% url 'web_loans:detail' pk=pag.emprestimo.id %}" class="btn btn-secondary btn-sm">Ver →</a>
+          <div class="inline-flex items-center gap-1">
+            {% if inativos %}
+            <form method="post" action="{% url 'web_payments:ativar' pk=pag.id %}" class="inline">
+              {% csrf_token %}<button type="submit" class="btn btn-secondary btn-sm">Ativar</button>
+            </form>
+            {% else %}
+            <button type="button" class="btn btn-secondary btn-sm"
+                    hx-get="{% url 'web_payments:editar' pk=pag.id %}"
+                    hx-target="#slideover-root" hx-swap="innerHTML">Editar</button>
+            <form method="post" action="{% url 'web_payments:desativar' pk=pag.id %}" class="inline"
+                  onsubmit="return confirm('Desativar este pagamento? O saldo será recalculado.');">
+              {% csrf_token %}<button type="submit" class="btn btn-secondary btn-sm">Desativar</button>
+            </form>
+            {% endif %}
+            <a href="{% url 'web_payments:apagar' pk=pag.id %}" class="btn btn-danger btn-sm">Apagar</a>
+            <a href="{% url 'web_loans:detail' pk=pag.emprestimo.id %}" class="btn btn-secondary btn-sm">Ver →</a>
+          </div>
         </td>
       </tr>
       {% empty %}
@@ -94,7 +120,7 @@
 
 {# Paginação (preserva filtros) #}
 {% if page.has_other_pages %}
-{% with flt="&q="|add:q|add:"&tipo="|add:tipo|add:"&de="|add:de|add:"&ate="|add:ate %}
+{% with flt="&q="|add:q|add:"&tipo="|add:tipo|add:"&de="|add:de|add:"&ate="|add:ate|add:inativos_qs %}
 <div class="flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50/60">
   <p class="text-xs text-slate-500">{{ page.start_index }}–{{ page.end_index }} de {{ page.paginator.count }}</p>
   <div class="flex gap-1">

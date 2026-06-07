@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages as flash
 from django.core.paginator import Paginator
@@ -6,7 +7,8 @@ from django.core.paginator import Paginator
 from loans.infrastructure.models import Emprestimo
 from loans.application.services import EmprestimoService
 from loans.interfaces.forms import (
-    EmprestimoComumForm, EmprestimoParceladoForm, PagamentoComumForm
+    EmprestimoComumForm, EmprestimoParceladoForm, PagamentoComumForm,
+    EmprestimoEditForm,
 )
 from customers.infrastructure.models import Cliente
 from core.exceptions import AgiBaseException
@@ -20,10 +22,12 @@ def emprestimo_list(request):
     tipo = request.GET.get('tipo', '')
     status_f = request.GET.get('status', '')
     vencido = request.GET.get('vencido', '')
+    inativos = request.GET.get('inativos', '') == '1'
 
-    qs = filtrar_por_usuario(
-        Emprestimo.objects.filter(deleted_at__isnull=True), request.user
-    ).select_related('cliente').prefetch_related('parcelas').order_by('-data_inicio')
+    base = Emprestimo.objects.filter(deleted_at__isnull=not inativos)
+    qs = filtrar_por_usuario(base, request.user).select_related(
+        'cliente'
+    ).prefetch_related('parcelas').order_by('-data_inicio')
     if q:
         qs = qs.filter(
             Q(cliente__nome__icontains=q) | Q(cliente__cpf__icontains=q)
@@ -39,7 +43,8 @@ def emprestimo_list(request):
     paginator = Paginator(qs, 30)
     page = paginator.get_page(request.GET.get('page', 1))
     return render(request, 'loans/list.html', {
-        'page': page, 'q': q, 'tipo': tipo, 'status_f': status_f, 'vencido': vencido,
+        'page': page, 'q': q, 'tipo': tipo, 'status_f': status_f,
+        'vencido': vencido, 'inativos': inativos,
     })
 
 
@@ -250,3 +255,71 @@ def emprestimo_pagar_parcelas(request, pk):
         flash.success(request, '🎉 Empréstimo quitado!')
 
     return redirect('web_loans:detail', pk=emp.id)
+
+
+# ── Edição / remoção de empréstimo ───────────────────────────────────────────
+
+def _emprestimo_do_usuario(request, pk, incluir_deletados=False):
+    base = Emprestimo.objects.all()
+    if not incluir_deletados:
+        base = base.filter(deleted_at__isnull=True)
+    return get_object_or_404(
+        filtrar_por_usuario(base.select_related('cliente'), request.user), pk=pk,
+    )
+
+
+@login_required
+def emprestimo_editar(request, pk):
+    emp = _emprestimo_do_usuario(request, pk)
+    if request.method == 'POST':
+        form = EmprestimoEditForm(request.POST, instance_tipo=emp.tipo)
+        if form.is_valid():
+            d = form.cleaned_data
+            try:
+                EmprestimoService.editar_emprestimo(
+                    str(emp.id), usuario=request.user,
+                    observacoes=d.get('observacoes', ''),
+                    data_vencimento=d.get('data_vencimento'),
+                    taxa_mensal=d.get('taxa_mensal'),
+                )
+                flash.success(request, 'Empréstimo atualizado.')
+                return redirect('web_loans:detail', pk=emp.id)
+            except AgiBaseException as e:
+                form.add_error(None, str(e))
+    else:
+        form = EmprestimoEditForm(instance_tipo=emp.tipo, initial={
+            'observacoes': emp.observacoes,
+            'data_vencimento': emp.data_vencimento,
+            'taxa_mensal': (emp.taxa_juros_mensal * 100) if emp.tipo == 'comum' else None,
+        })
+    return render(request, 'loans/form_editar.html', {'form': form, 'emp': emp})
+
+
+@login_required
+def emprestimo_desativar(request, pk):
+    emp = _emprestimo_do_usuario(request, pk)
+    if request.method == 'POST':
+        EmprestimoService.desativar_emprestimo(str(emp.id), request.user)
+        flash.success(request, 'Empréstimo desativado. Veja em "Mostrar desativados".')
+    return redirect('web_loans:list')
+
+
+@login_required
+def emprestimo_ativar(request, pk):
+    emp = _emprestimo_do_usuario(request, pk, incluir_deletados=True)
+    if request.method == 'POST':
+        EmprestimoService.ativar_emprestimo(str(emp.id), request.user)
+        flash.success(request, 'Empréstimo reativado.')
+    return redirect(f"{reverse('web_loans:list')}?inativos=1")
+
+
+@login_required
+def emprestimo_apagar(request, pk):
+    emp = _emprestimo_do_usuario(request, pk, incluir_deletados=True)
+    if request.method == 'POST':
+        EmprestimoService.apagar_emprestimo(str(emp.id), request.user)
+        flash.success(request, 'Empréstimo e dados vinculados apagados definitivamente.')
+        return redirect('web_loans:list')
+    return render(request, 'loans/confirm_apagar.html', {
+        'emp': emp, 'n_pag': emp.pagamentos.count(),
+    })

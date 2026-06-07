@@ -1,6 +1,7 @@
 {# Mobile #}
 <div class="lg:hidden divide-y divide-slate-100">
   {% for cliente in page %}
+  <div>
   <a href="{% url 'web_customers:detail' pk=cliente.id %}"
      class="flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors">
     <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0
@@ -27,6 +28,21 @@
       </svg>
     </div>
   </a>
+  <div class="flex items-center gap-1.5 px-5 pb-3 -mt-1">
+    {% if inativos %}
+    <form method="post" action="{% url 'web_customers:ativar' pk=cliente.id %}" class="inline">
+      {% csrf_token %}<button type="submit" class="btn btn-secondary btn-sm">Ativar</button>
+    </form>
+    {% else %}
+    <a href="{% url 'web_customers:update' pk=cliente.id %}" class="btn btn-secondary btn-sm">Editar</a>
+    <form method="post" action="{% url 'web_customers:desativar' pk=cliente.id %}" class="inline"
+          onsubmit="return confirm('Desativar {{ cliente.nome|escapejs }}?');">
+      {% csrf_token %}<button type="submit" class="btn btn-secondary btn-sm">Desativar</button>
+    </form>
+    {% endif %}
+    <a href="{% url 'web_customers:apagar' pk=cliente.id %}" class="btn btn-danger btn-sm">Apagar</a>
+  </div>
+  </div>
   {% empty %}
   <div class="empty-state">
     <div class="empty-state-icon">
@@ -100,12 +116,26 @@
         </td>
         <td>
           <div class="flex items-center gap-1 justify-end">
+            {% if inativos %}
+            <form method="post" action="{% url 'web_customers:ativar' pk=cliente.id %}" class="inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-secondary btn-sm" title="Reativar">Ativar</button>
+            </form>
+            {% else %}
             <a href="{% url 'web_customers:update' pk=cliente.id %}"
                class="btn btn-secondary btn-sm btn-icon" title="Editar">
               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
               </svg>
             </a>
+            <form method="post" action="{% url 'web_customers:desativar' pk=cliente.id %}" class="inline"
+                  onsubmit="return confirm('Desativar {{ cliente.nome|escapejs }}? Pode reativar depois em “Mostrar desativados”.');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-secondary btn-sm" title="Desativar">Desativar</button>
+            </form>
+            {% endif %}
+            <a href="{% url 'web_customers:apagar' pk=cliente.id %}"
+               class="btn btn-danger btn-sm" title="Apagar definitivamente">Apagar</a>
             <a href="{% url 'web_customers:detail' pk=cliente.id %}"
                class="btn btn-primary btn-sm">Ver →</a>
           </div>

@@ -3,6 +3,11 @@
 {% block page_title %}Empréstimos{% endblock %}
 
 {% block page_actions %}
+  {% if inativos %}
+  <a href="{% url 'web_loans:list' %}" class="btn btn-primary btn-sm">← Voltar aos ativos</a>
+  {% else %}
+  <a href="{% url 'web_loans:list' %}?inativos=1" class="btn btn-secondary btn-sm" title="Empréstimos desativados">Desativados</a>
+  {% endif %}
   <a href="{% url 'web_customers:list' %}" class="btn btn-primary btn-sm">
     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
@@ -19,6 +24,7 @@
   {# Filtros #}
   <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-5 py-3.5 border-b border-slate-100 bg-slate-50/60">
     <form method="get" class="flex flex-col sm:flex-row gap-3 w-full">
+      {% if inativos %}<input type="hidden" name="inativos" value="1">{% endif %}
       <input type="text" name="q" value="{{ q }}"
              placeholder="Buscar por nome, CPF ou telefone..."
              class="input py-2 flex-1"
@@ -48,6 +54,7 @@
   {# Mobile: cards #}
   <div class="lg:hidden divide-y divide-slate-100">
     {% for emp in page %}
+    <div>
     <a href="{% url 'web_loans:detail' pk=emp.id %}"
        class="flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors">
       <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0
@@ -72,6 +79,21 @@
         {% endif %}
       </div>
     </a>
+    <div class="flex items-center gap-1.5 px-5 pb-3 -mt-1">
+      {% if inativos %}
+      <form method="post" action="{% url 'web_loans:ativar' pk=emp.id %}" class="inline">
+        {% csrf_token %}<button type="submit" class="btn btn-secondary btn-sm">Ativar</button>
+      </form>
+      {% else %}
+      <a href="{% url 'web_loans:editar' pk=emp.id %}" class="btn btn-secondary btn-sm">Editar</a>
+      <form method="post" action="{% url 'web_loans:desativar' pk=emp.id %}" class="inline"
+            onsubmit="return confirm('Desativar este empréstimo?');">
+        {% csrf_token %}<button type="submit" class="btn btn-secondary btn-sm">Desativar</button>
+      </form>
+      {% endif %}
+      <a href="{% url 'web_loans:apagar' pk=emp.id %}" class="btn btn-danger btn-sm">Apagar</a>
+    </div>
+    </div>
     {% empty %}
     <div class="empty-state">
       <div class="empty-state-icon">
@@ -137,7 +159,21 @@
             {% endif %}
           </td>
           <td>
-            <a href="{% url 'web_loans:detail' pk=emp.id %}" class="btn btn-primary btn-sm">Ver →</a>
+            <div class="flex items-center gap-1 justify-end">
+              {% if inativos %}
+              <form method="post" action="{% url 'web_loans:ativar' pk=emp.id %}" class="inline">
+                {% csrf_token %}<button type="submit" class="btn btn-secondary btn-sm">Ativar</button>
+              </form>
+              {% else %}
+              <a href="{% url 'web_loans:editar' pk=emp.id %}" class="btn btn-secondary btn-sm">Editar</a>
+              <form method="post" action="{% url 'web_loans:desativar' pk=emp.id %}" class="inline"
+                    onsubmit="return confirm('Desativar este empréstimo? Pode reativar depois.');">
+                {% csrf_token %}<button type="submit" class="btn btn-secondary btn-sm">Desativar</button>
+              </form>
+              {% endif %}
+              <a href="{% url 'web_loans:apagar' pk=emp.id %}" class="btn btn-danger btn-sm">Apagar</a>
+              <a href="{% url 'web_loans:detail' pk=emp.id %}" class="btn btn-primary btn-sm">Ver →</a>
+            </div>
           </td>
         </tr>
         {% empty %}
@@ -156,8 +192,8 @@
     <div class="flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50/60">
       <p class="text-xs text-slate-500">{{ page.start_index }}–{{ page.end_index }} de {{ page.paginator.count }}</p>
       <div class="flex gap-1">
-        {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}&q={{ q }}&tipo={{ tipo }}&status={{ status_f }}&vencido={{ vencido }}" class="btn btn-secondary btn-sm">← Anterior</a>{% endif %}
-        {% if page.has_next %}<a href="?page={{ page.next_page_number }}&q={{ q }}&tipo={{ tipo }}&status={{ status_f }}&vencido={{ vencido }}" class="btn btn-secondary btn-sm">Próxima →</a>{% endif %}
+        {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}&q={{ q }}&tipo={{ tipo }}&status={{ status_f }}&vencido={{ vencido }}{% if inativos %}&inativos=1{% endif %}" class="btn btn-secondary btn-sm">← Anterior</a>{% endif %}
+        {% if page.has_next %}<a href="?page={{ page.next_page_number }}&q={{ q }}&tipo={{ tipo }}&status={{ status_f }}&vencido={{ vencido }}{% if inativos %}&inativos=1{% endif %}" class="btn btn-secondary btn-sm">Próxima →</a>{% endif %}
       </div>
     </div>
     {% endif %}
@@ -168,8 +204,8 @@
   <div class="lg:hidden flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50/60">
     <p class="text-xs text-slate-500">Pág. {{ page.number }}/{{ page.paginator.num_pages }}</p>
     <div class="flex gap-1.5">
-      {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}&q={{ q }}&tipo={{ tipo }}&status={{ status_f }}&vencido={{ vencido }}" class="btn btn-secondary btn-sm">←</a>{% endif %}
-      {% if page.has_next %}<a href="?page={{ page.next_page_number }}&q={{ q }}&tipo={{ tipo }}&status={{ status_f }}&vencido={{ vencido }}" class="btn btn-secondary btn-sm">→</a>{% endif %}
+      {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}&q={{ q }}&tipo={{ tipo }}&status={{ status_f }}&vencido={{ vencido }}{% if inativos %}&inativos=1{% endif %}" class="btn btn-secondary btn-sm">←</a>{% endif %}
+      {% if page.has_next %}<a href="?page={{ page.next_page_number }}&q={{ q }}&tipo={{ tipo }}&status={{ status_f }}&vencido={{ vencido }}{% if inativos %}&inativos=1{% endif %}" class="btn btn-secondary btn-sm">→</a>{% endif %}
     </div>
   </div>
   {% endif %}

@@ -56,10 +56,20 @@ class ClienteSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         cpf = attrs.get('cpf')
+        if not cpf:
+            return attrs
         instance = self.instance
-        qs = Cliente.objects.filter(cpf=cpf, deleted_at__isnull=True)
+        # Unicidade de CPF é POR USUÁRIO (isolamento entre operadores).
+        if instance is not None:
+            owner = instance.owner
+        else:
+            user = getattr(self.context.get('request'), 'user', None)
+            owner = user if (user and user.is_authenticated) else None
+        qs = Cliente.objects.filter(cpf=cpf, owner=owner, deleted_at__isnull=True)
         if instance:
             qs = qs.exclude(pk=instance.pk)
         if qs.exists():
-            raise serializers.ValidationError({'cpf': 'CPF já cadastrado.'})
+            raise serializers.ValidationError(
+                {'cpf': 'Você já tem um cliente com este CPF.'}
+            )
         return attrs

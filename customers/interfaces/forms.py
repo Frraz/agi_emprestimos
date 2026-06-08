@@ -58,13 +58,19 @@ class ClienteForm(forms.ModelForm):
             'observacoes': forms.Textarea(attrs={'class': _T, 'rows': 3}),
         }
 
+    def __init__(self, *args, owner=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Dono usado para escopar a checagem de CPF duplicado (isolamento).
+        self._owner = owner if owner is not None else getattr(self.instance, 'owner', None)
+
     def clean_cpf(self):
         cpf = formatar_cpf(self.cleaned_data.get('cpf', ''))
         if not validar_cpf(cpf):
             raise forms.ValidationError('CPF inválido.')
-        qs = Cliente.objects.filter(cpf=cpf, deleted_at__isnull=True)
+        # Unicidade POR USUÁRIO: só conflita com clientes do próprio operador.
+        qs = Cliente.objects.filter(cpf=cpf, owner=self._owner, deleted_at__isnull=True)
         if self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():
-            raise forms.ValidationError('CPF já cadastrado.')
+            raise forms.ValidationError('Você já tem um cliente com este CPF.')
         return cpf

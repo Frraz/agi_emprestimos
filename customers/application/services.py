@@ -24,7 +24,10 @@ class ClienteService:
         if not validar_cpf(cpf):
             raise CPFInvalidoError(f"CPF inválido: {dados.get('cpf')}")
 
-        if Cliente.objects.filter(cpf=cpf, deleted_at__isnull=True).exists():
+        # Unicidade de CPF é POR USUÁRIO (isolamento entre operadores).
+        if Cliente.objects.filter(
+            cpf=cpf, owner=usuario, deleted_at__isnull=True
+        ).exists():
             raise ClienteJaExisteError(f"CPF já cadastrado: {cpf}")
 
         dados = {**dados, 'cpf': cpf}

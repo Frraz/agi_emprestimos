@@ -51,8 +51,11 @@ class Cliente(BaseModel):
 
     # ── Dados pessoais ─────────────────────────────────────────────────────
     nome = models.CharField(max_length=200, db_index=True)
+    # CPF é único POR USUÁRIO (não global): pessoas diferentes operam carteiras
+    # isoladas e podem ter o mesmo cliente. A unicidade é garantida pela
+    # UniqueConstraint (owner, cpf) no Meta, não por unique=True no campo.
     cpf = models.CharField(
-        max_length=14, unique=True, db_index=True, validators=[validate_cpf]
+        max_length=14, db_index=True, validators=[validate_cpf]
     )
     rg = models.CharField(max_length=30, blank=True, null=True)
     cnh = models.CharField(max_length=20, blank=True, null=True, verbose_name='CNH')
@@ -120,6 +123,15 @@ class Cliente(BaseModel):
         indexes = [
             models.Index(fields=['classificacao', 'deleted_at']),
             models.Index(fields=['cidade', 'estado']),
+        ]
+        constraints = [
+            # CPF único por dono, considerando apenas registros ativos
+            # (permite recadastrar um CPF cujo cliente foi desativado/apagado).
+            models.UniqueConstraint(
+                fields=['owner', 'cpf'],
+                condition=models.Q(deleted_at__isnull=True),
+                name='uniq_cpf_por_owner_ativo',
+            ),
         ]
 
     def __str__(self):

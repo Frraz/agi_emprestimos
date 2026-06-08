@@ -198,7 +198,10 @@ class Command(BaseCommand):
         from customers.infrastructure.models import Cliente
 
         self.stdout.write(f'\n  Criando {n} clientes...')
-        clientes, cpfs = [], set()
+        clientes = []
+        # CPF é único no banco inteiro (todos os usuários, incluindo soft-deletados).
+        # Pré-carrega os já existentes para não colidir ao popular um 2º usuário.
+        cpfs = set(Cliente.objects.values_list('cpf', flat=True))
 
         classifs = (['verde'] * int(n * 0.5) + ['amarelo'] * int(n * 0.3)
                     + ['vermelho'] * int(n * 0.2))

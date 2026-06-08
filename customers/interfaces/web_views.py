@@ -113,7 +113,7 @@ def cliente_detail(request, pk):
 @login_required
 def cliente_create(request):
     if request.method == 'POST':
-        form = ClienteForm(request.POST, request.FILES)
+        form = ClienteForm(request.POST, request.FILES, owner=request.user)
         if form.is_valid():
             cliente = form.save(commit=False)
             cliente.owner = request.user
@@ -122,7 +122,7 @@ def cliente_create(request):
             flash.success(request, f'Cliente {cliente.nome} cadastrado com sucesso.')
             return redirect('web_customers:detail', pk=cliente.id)
     else:
-        form = ClienteForm()
+        form = ClienteForm(owner=request.user)
     return render(request, 'customers/form.html', {'form': form, 'acao': 'Cadastrar'})
 
 
@@ -130,14 +130,14 @@ def cliente_create(request):
 def cliente_update(request, pk):
     cliente = _cliente_do_usuario(request, pk)
     if request.method == 'POST':
-        form = ClienteForm(request.POST, request.FILES, instance=cliente)
+        form = ClienteForm(request.POST, request.FILES, instance=cliente, owner=request.user)
         if form.is_valid():
             form.save()
             _audit(cliente, 'update', request.user)
             flash.success(request, 'Cliente atualizado com sucesso.')
             return redirect('web_customers:detail', pk=cliente.id)
     else:
-        form = ClienteForm(instance=cliente)
+        form = ClienteForm(instance=cliente, owner=request.user)
     return render(request, 'customers/form.html', {
         'form': form, 'cliente': cliente, 'acao': 'Atualizar'
     })
